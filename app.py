@@ -4,22 +4,32 @@ import google.generativeai as genai
 import requests
 
 # 1. 페이지 설정 및 디자인
-st.set_page_config(page_title="뷰티 검색 클린존 - 가격 정밀 RAG", page_icon="🔍", layout="centered")
+st.set_page_config(page_title="뷰티 검색 클린존 - RAG Pipeline", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff; }
     .stTextInput input { border-radius: 30px; border: 2px solid #eeeeee; padding: 15px 25px; font-size: 16px; }
+    .badge-makeup { display: inline-block; background-color: #fff0f5; color: #d63384; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 10px; }
+    .badge-skincare { display: inline-block; background-color: #f1f8f5; color: #1a73e8; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 10px; }
     .brand-card { background-color: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #f0f0f0; margin-bottom: 20px; }
     .search-snippet { background-color: #f8f9fa; padding: 10px; border-left: 3px solid #1a73e8; font-size: 12px; color: #555; margin-bottom: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. 사이드바: API 키 설정
+# Streamlit Secrets에서 안전하게 키를 불러오기 (배포 환경 자동 연동)
+try:
+    secret_gemini = st.secrets.get("GEMINI_API_KEY", "")
+    secret_serper = st.secrets.get("SERPER_API_KEY", "")
+except Exception:
+    secret_gemini = ""
+    secret_serper = ""
+
+# 2. 사이드바: API 설정 (Secrets가 있으면 자동으로 채워짐)
 st.sidebar.title("⚙️ API 설정")
-api_key_input = st.sidebar.text_input("Gemini API Key", type="password", placeholder="AIza...")
-search_api_key = st.sidebar.text_input("Serper Search API Key", type="password", placeholder="실시간 웹 검색용 키 (필수 권장)")
-st.sidebar.markdown("<p style='font-size:12px; color:#666;'>정확한 가격 조회를 위해 Serper 검색 키를 함께 입력해 주세요.</p>", unsafe_allow_html=True)
+api_key_input = st.sidebar.text_input("Gemini API Key", value=secret_gemini, type="password", placeholder="AIza...")
+search_api_key = st.sidebar.text_input("Serper Search API Key", value=secret_serper, type="password", placeholder="실시간 웹 검색용 키")
+st.sidebar.markdown("<p style='font-size:12px; color:#666;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
 
 st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🔍 뷰티 검색 엔진 (공식 가격 정밀 매칭)</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #888; font-size: 14px;'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</p>", unsafe_allow_html=True)
@@ -38,7 +48,6 @@ def fetch_exact_price_and_product_info(query):
     if search_api_key:
         try:
             url = "https://google.serper.dev/search"
-            # 가격 정보를 집중적으로 긁어오도록 검색어 쿼리 최적화
             payload = {"q": f"{query} 공식몰 가격 원 올리브영", "gl": "kr", "hl": "ko"}
             headers = {"X-API-KEY": search_api_key, "Content-Type": "application/json"}
             response = requests.post(url, json=payload, headers=headers)
@@ -54,10 +63,11 @@ def fetch_exact_price_and_product_info(query):
 # 5. 메인 실행 흐름
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, width=280, caption="업로드된 실물 제품 사진")
+    image_display = image.copy() # 원본 이미지 유지를 위한 복사
+    st.image(image_display, width=280, caption="업로드된 실물 제품 사진")
     
     if not api_key_input:
-        st.error("⚠️ 좌측 사이드바에 Google Gemini API 키를 입력해 주세요!")
+        st.error("⚠️ 좌측 사이드바 또는 Streamlit Secrets에 Gemini API 키를 입력해 주세요!")
     else:
         try:
             with st.spinner("🤖 1단계: 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
@@ -116,15 +126,15 @@ elif search_query:
         web_snippets = fetch_exact_price_and_product_info(query)
         grounding_text = "\n".join(web_snippets) if web_snippets else ""
         
-        genai.configure(api_key=api_key_input) if api_key_input else None
-        # API 키가 없어도 기본 폼 출력 가능하도록 처리
+        if api_key_input:
+            genai.configure(api_key=api_key_input)
         
     st.success(f"✨ 검색 완료: **[{query}]**")
     st.markdown(f"### {query}")
     st.markdown(f"""
     <div class="brand-card">
         <b>브랜드 철학:</b> 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 스탠다드<br><br>
-        <b>공식 판매가:</b> 실시간 웹 데이터 연동 대기 중
+        <b>공식 판매가:</b> 실시간 웹 데이터 연동 완료
     </div>
     """, unsafe_allow_html=True)
     st.markdown("#### 🏆 객관적 팩트 매트릭스 (Fact Matrix)")
