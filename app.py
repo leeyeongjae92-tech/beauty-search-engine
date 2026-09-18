@@ -13,17 +13,11 @@ st.markdown("""
         font-size: 52px;
         font-weight: 800;
         letter-spacing: -2px;
-        margin-top: 10px;
-        margin-bottom: 0px;
+        margin-top: 20px;
+        margin-bottom: 40px; /* 로고 하단 여백 최적화 */
         background: linear-gradient(90deg, #4285F4 0%, #EA4335 35%, #FBBC05 70%, #34A853 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-    }
-    .diyv-subtitle {
-        text-align: center;
-        font-size: 14px;
-        opacity: 0.65;
-        margin-bottom: 30px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -32,9 +26,8 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. DIYV 로고 및 슬로건
+# 3. DIYV 로고만 단독 노출
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
-st.markdown("<div class='diyv-subtitle'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</div>", unsafe_allow_html=True)
 
 # 4. 안정적인 인터페이스 (텍스트 검색 & 이미지 분석 탭)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
