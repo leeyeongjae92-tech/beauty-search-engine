@@ -3,33 +3,47 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정
+# 1. 페이지 설정 (모바일 뷰포트 및 반응형 기본 설정 최적화)
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
+    /* 데스크톱 기준 로고 스타일 */
     .diyv-logo {
         text-align: center;
         font-size: 52px;
         font-weight: 800;
         letter-spacing: -2px;
-        margin-top: 20px;
-        margin-bottom: 40px; /* 로고 하단 여백 최적화 */
+        margin-top: 15px;
+        margin-bottom: 25px;
         background: linear-gradient(90deg, #4285F4 0%, #EA4335 35%, #FBBC05 70%, #34A853 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
+
+    /* 모바일 환경(화면 너비 640px 이하 스마트폰) 반응형 대응 */
+    @media (max-width: 640px) {
+        .diyv-logo {
+            font-size: 36px !important;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        .stTextInput input {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. 백엔드 시크릿에서 API 키 자동 로드 (사용자 노출 원천 차단)
+# 2. 백엔드 시크릿에서 API 키 자동 로드 (보안 유지)
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. DIYV 로고만 단독 노출
+# 3. DIYV 로고 출력
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
 
-# 4. 안정적인 인터페이스 (텍스트 검색 & 이미지 분석 탭)
+# 4. 모바일에서도 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
 
 def fetch_exact_price_and_product_info(query):
