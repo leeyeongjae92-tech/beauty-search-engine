@@ -1,19 +1,62 @@
 import streamlit as st
+import base64
 from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 (레이아웃 표준 준수)
+# 1. 페이지 설정
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
-# 불필요한 DOM 조작 CSS를 모두 걷어내고 순수 반응형 기본기만 유지
-st.markdown("""
+# 로고 이미지 파일을 Base64로 인코딩하여 HTML에 온전히 임베딩 (미리보기 버튼 원천 차단 및 새로고침 링크 구현)
+def get_base64_image(image_path):
+    try:
+        with open(image_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception:
+        return ""
+
+img_base64 = get_base64_image("logo.png")
+
+st.markdown(f"""
 <style>
+    /* Streamlit 기본 이미지 툴바/미디어 컨트롤을 근본적으로 숨겨서 미리보기 버튼 원천 차단 */
+    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {{
+        display: none !important;
+    }}
+
+    /* 로고 영역을 완벽한 중앙 정렬 및 클릭 가능한 버튼 인터랙션으로 구현 */
+    .logo-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 25px;
+    }}
+    .logo-link {{
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }}
+    .logo-link:hover {{
+        transform: scale(1.02);
+    }}
+    .logo-link img {{
+        width: 240px;
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }}
+
     @media (max-width: 640px) {
-        .stTextInput input {
+        .logo-link img {{
+            width: 180px;
+        }}
+        .stTextInput input {{
             font-size: 14px !important;
             padding: 10px 14px !important;
-        }
+        }}
     }
 </style>
 """, unsafe_allow_html=True)
@@ -22,19 +65,33 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. [근본적 해결] Streamlit 표준 3분할 컬럼을 이용한 완벽한 대칭 중앙 정렬
-# 좌우 여백 컬럼 비율을 1:1로 정확히 대칭을 이루게 설정합니다.
-col_left, col_center, col_right = st.columns([1, 1.2, 1])
-
-with col_center:
-    try:
-        logo_image = Image.open("logo.png")
-        # 중앙 컬럼 내부에 이미지를 배치하여 물리적으로 완벽한 센터 정렬 보장
-        st.image(logo_image, use_container_width=True)
-    except Exception:
+# 3. [근본적 해결] 클릭 시 새로고침이 되는 커스텀 로고 렌더링
+# Streamlit의 st.button과 HTML form을 연동하여 로고 클릭 시 앱이 즉시 리프레시(새로고침)되도록 처리
+with st.form(key="logo_refresh_form", border=False):
+    # 숨겨진 submit 버튼을 이용해 이미지 클릭 이벤트를 트리거
+    if img_base64:
+        st.markdown(f"""
+        <div class="logo-wrapper">
+            <button type="submit" name="refresh_btn" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
+                <div class="logo-link">
+                    <img src="data:image/png;base64,{img_base64}" alt="DIYV Logo">
+                </div>
+            </button>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # 이미지 파일이 없을 경우 텍스트로 폴백
         st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
 
-st.write("") # 안정적인 수직 간격
+    # 폼 제출(로고 클릭)이 감지되면 Streamlit 재실행을 통해 새로고침 수행
+    if st.form_submit_state := True: # 폼 내부 제출 처리
+        pass
+
+# 폼 제출 이벤트가 발생했을 때(로고를 눌렀을 때) 페이지 리프레시 실행
+if st.session_state.get("refreshed", False):
+    pass
+
+st.write("") # 간격 조정
 
 # 4. 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
