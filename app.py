@@ -66,12 +66,6 @@ st.markdown("""
         align-items: center !important;
     }
 
-    /* 검색창 내부 입력 필드의 실제 세로 높이 기준 설정 */
-    .stTextInput input {
-        min-height: 48px !important;
-        height: 48px !important;
-    }
-
     /* 파일 업로더 드롭존 박스 영역 정돈 */
     [data-testid="stFileUploader"] {
         width: auto !important;
@@ -91,12 +85,12 @@ st.markdown("""
         display: none !important;
     }
     
-    /* [근본적인 해결] 카메라 아이콘 버튼의 높이를 검색창 입력 필드 높이(48px)와 정확히 일치시킴 */
+    /* [근본적인 해결] 검색창 기본 세로 높이에 딱 맞게 카메라 버튼 크기를 38px로 정밀 축소 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
-        width: 48px !important;
-        height: 48px !important;
-        min-height: 48px !important;
+        width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
         background-color: #f8f9fa !important;
         border: 1px solid #dfe1e5 !important;
         color: transparent !important;
@@ -112,15 +106,15 @@ st.markdown("""
         border-color: #dadce0 !important;
     }
     
-    /* 카메라 SVG 아이콘 크기 및 위치 정교하게 조율 */
+    /* 카메라 SVG 아이콘 크기를 버튼 크기에 비례하여 완벽하게 안착 */
     [data-testid="stFileUploader"] button svg {
         display: none !important;
     }
     [data-testid="stFileUploader"] button::after {
         content: "";
         position: absolute;
-        width: 22px;
-        height: 22px;
+        width: 18px;
+        height: 18px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: center;
