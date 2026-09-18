@@ -63,8 +63,8 @@ def fetch_exact_price_and_product_info(query):
     return snippets
 
 with tab1:
-    # 요청하신 깔끔한 placeholder 문구 적용
-    search_query = st.text_input("브랜드 또는 제품명 검색", placeholder="브랜드 또는 제품명을 입력하세요", label_visibility="collapsed")
+    # 요청하신 소문자 'diyv에게 말하기' 문구 적용
+    search_query = st.text_input("브랜드 또는 제품명 검색", placeholder="diyv에게 말하기", label_visibility="collapsed")
     if search_query:
         query = search_query.strip()
         if not gemini_api_key:
