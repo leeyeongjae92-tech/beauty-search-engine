@@ -7,7 +7,7 @@ import requests
 # 1. 페이지 설정
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
-# 로고 이미지 파일을 Base64로 인코딩하여 HTML에 온전히 임베딩 (미리보기 버튼 원천 차단 및 새로고침 링크 구현)
+# 로고 이미지 파일을 Base64로 인코딩 (f-string 충돌 방지를 위해 일반 문자열 HTML로 분리)
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as f:
@@ -18,45 +18,46 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-st.markdown(f"""
+# f-string 충돌을 막기 위해 일반 st.markdown 사용 (CSS 내부 중괄호는 정상 작동)
+st.markdown("""
 <style>
-    /* Streamlit 기본 이미지 툴바/미디어 컨트롤을 근본적으로 숨겨서 미리보기 버튼 원천 차단 */
-    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {{
+    /* Streamlit 기본 이미지 툴바 및 미디어 컨트롤 강제 숨김 */
+    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
-    }}
+    }
 
-    /* 로고 영역을 완벽한 중앙 정렬 및 클릭 가능한 버튼 인터랙션으로 구현 */
-    .logo-wrapper {{
+    /* 로고 중앙 정렬 및 인터랙션 디자인 */
+    .logo-wrapper {
         display: flex;
         justify-content: center;
         align-items: center;
         width: 100%;
         margin-top: 15px;
         margin-bottom: 25px;
-    }}
-    .logo-link {{
+    }
+    .logo-link {
         cursor: pointer;
         display: inline-block;
         transition: transform 0.2s ease;
-    }}
-    .logo-link:hover {{
+    }
+    .logo-link:hover {
         transform: scale(1.02);
-    }}
-    .logo-link img {{
+    }
+    .logo-link img {
         width: 240px;
         max-width: 100%;
         height: auto;
         display: block;
-    }}
+    }
 
     @media (max-width: 640px) {
-        .logo-link img {{
+        .logo-link img {
             width: 180px;
-        }}
-        .stTextInput input {{
+        }
+        .stTextInput input {
             font-size: 14px !important;
             padding: 10px 14px !important;
-        }}
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -65,31 +66,21 @@ st.markdown(f"""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. [근본적 해결] 클릭 시 새로고침이 되는 커스텀 로고 렌더링
-# Streamlit의 st.button과 HTML form을 연동하여 로고 클릭 시 앱이 즉시 리프레시(새로고침)되도록 처리
-with st.form(key="logo_refresh_form", border=False):
-    # 숨겨진 submit 버튼을 이용해 이미지 클릭 이벤트를 트리거
-    if img_base64:
-        st.markdown(f"""
-        <div class="logo-wrapper">
-            <button type="submit" name="refresh_btn" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
+# 3. 클릭 시 새로고침이 되는 커스텀 로고 렌더링
+if img_box := img_base64:
+    st.markdown(f"""
+    <div class="logo-wrapper">
+        <form action="" method="get">
+            <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
                 <div class="logo-link">
-                    <img src="data:image/png;base64,{img_base64}" alt="DIYV Logo">
+                    <img src="data:image/png;base64,{img_box}" alt="DIYV Logo">
                 </div>
             </button>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        # 이미지 파일이 없을 경우 텍스트로 폴백
-        st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
-
-    # 폼 제출(로고 클릭)이 감지되면 Streamlit 재실행을 통해 새로고침 수행
-    if st.form_submit_state := True: # 폼 내부 제출 처리
-        pass
-
-# 폼 제출 이벤트가 발생했을 때(로고를 눌렀을 때) 페이지 리프레시 실행
-if st.session_state.get("refreshed", False):
-    pass
+        </form>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
 
 st.write("") # 간격 조정
 
