@@ -7,7 +7,7 @@ import requests
 import io
 
 # 1. 페이지 설정
-st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
+st.set_page_config(page_title="diyv - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
 # 로고 이미지 Base64 인코딩 함수
 def get_base64_image(image_path):
@@ -70,7 +70,7 @@ if img_box := img_base64:
         <form action="" method="get">
             <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
                 <div class="logo-link">
-                    <img src="data:image/png;base64,{img_box}" alt="DIYV Logo">
+                    <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
                 </div>
             </button>
         </form>
@@ -98,7 +98,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. [근본적 해결] HTML/JS 커스텀 구글 검색바 (좌우 여백을 충분히 주어 그림자가 잘리지 않고 둥글게 퍼지도록 보정)
+# 4. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바
 search_bar_html = """
 <!DOCTYPE html>
 <html>
@@ -106,7 +106,7 @@ search_bar_html = """
 <style>
   body {
     margin: 0;
-    padding: 12px 14px; /* 좌우 여백을 넉넉히 주어 그림자가 각지지 않고 부드럽게 둥글게 퍼지도록 수정 */
+    padding: 12px 14px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: transparent;
     box-sizing: border-box;
@@ -119,13 +119,14 @@ search_bar_html = """
     border-radius: 28px;
     padding: 8px 16px;
     box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
-    transition: box-shadow 0.2s, border-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     box-sizing: border-box;
   }
+  /* 마우스 오버 시 #41b2e7 메인 컬러가 부드럽게 퍼지는 그라데이션 글로우 효과 적용 */
   .search-container:hover, .search-container:focus-within {
-    box-shadow: 0 4px 16px rgba(32, 33, 36, 0.16);
-    border-color: rgba(223, 225, 229, 0);
+    border-color: #41b2e7;
+    box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 16px rgba(65, 178, 231, 0.3);
   }
   .search-input {
     flex: 1;
@@ -147,10 +148,11 @@ search_bar_html = """
     justify-content: center;
     border-radius: 50%;
     color: #5f6368;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
   }
   .icon-btn:hover {
-    background-color: #f1f3f4;
+    background-color: rgba(65, 178, 231, 0.1);
+    color: #41b2e7;
   }
 </style>
 </head>
@@ -159,7 +161,7 @@ search_bar_html = """
     <input type="text" id="searchInput" class="search-input" placeholder="diyv에게 말하기" />
     <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
     <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
-      <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="#5f6368">
+      <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
         <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
       </svg>
     </button>
@@ -210,7 +212,7 @@ if img_base64_data:
         if not gemini_api_key:
             st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
         else:
-            with st.spinner("🤖 [DIYV] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
+            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
                 model_name = 'gemini-3.6-flash'
                 model = genai.GenerativeModel(model_name)
@@ -219,11 +221,11 @@ if img_base64_data:
                 extract_response = model.generate_content([image, extract_prompt])
                 identified_product_name = extract_response.text.strip()
                 
-            with st.spinner(f"🌐 [DIYV] '{identified_product_name}'의 공식몰 및 실거래 가격 데이터 실시간 조회 중..."):
+            with st.spinner(f"🌐 [diyv] '{identified_product_name}'의 공식몰 및 실거래 가격 데이터 실시간 조회 중..."):
                 web_snippets = fetch_exact_price_and_product_info(identified_product_name)
                 grounding_text = "\n".join(web_snippets) if web_snippets else "추가 웹 검색 결과 없음"
 
-            with st.spinner("✨ [DIYV] 공식 판매가 및 객관적 팩트 매트릭스 합성 중..."):
+            with st.spinner("✨ [diyv] 공식 판매가 및 객관적 팩트 매트릭스 합성 중..."):
                 final_prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가입니다. 
                 제공된 이미지와 실시간 웹 검색 데이터(Grounding Context)를 조합하여 이 제품을 정밀 분석해주세요.
 
@@ -247,7 +249,7 @@ if img_base64_data:
                 
                 final_response = model.generate_content([image, final_prompt])
                 
-                st.markdown(f"### 📋 DIYV 공식 가격 기반 뷰티 팩트 분석 리포트")
+                st.markdown(f"### 📋 diyv 공식 가격 기반 뷰티 팩트 분석 리포트")
                 st.write(final_response.text)
                 
                 if web_snippets:
@@ -269,6 +271,6 @@ elif search_query:
         
         st.success(f"✨ 검색 완료: **[{query}]**")
         st.markdown(f"### {query}")
-        st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 DIYV 스탠다드")
-        st.markdown("#### 🏆 DIYV 객관적 팩트 매트릭스 (Fact Matrix)")
+        st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 diyv 스탠다드")
+        st.markdown("#### 🏆 diyv 객관적 팩트 매트릭스 (Fact Matrix)")
         st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
