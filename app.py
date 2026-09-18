@@ -49,33 +49,49 @@ st.markdown("""
         display: block;
     }
 
-    /* [근본적인 해결] 수평 블록(columns) 내의 검색창과 업로드 버튼을 완벽한 일직선(수직 중앙)으로 정렬 */
+    /* [근본적인 해결] 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 강제 고정 */
     div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
         align-items: center !important;
+        justify-content: center !important;
+        gap: 10px !important;
     }
 
-    /* st.file_uploader 컴팩트한 원형 버튼 스타일링 */
+    /* 검색창 높이와 업로드 버튼의 높이를 일치시켜 완벽한 일직선상에 안착시킴 */
+    div[data-testid="stHorizontalBlock"] > div:first-child {
+        flex: 1 !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div:last-child {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        padding-top: 0px !important;
+    }
+
+    /* st.file_uploader 컴팩트한 원형 버튼 스타일링 (텍스트 'Upload' 제거 및 아이콘 중심 배치) */
     [data-testid="stFileUploader"] {
-        width: auto !important;
+        width: 44px !important;
+        margin: 0 !important;
     }
     [data-testid="stFileUploader"] section {
         padding: 0px !important;
         border: none !important;
         background: transparent !important;
+        min-height: unset !important;
     }
     [data-testid="stFileUploader"] section > div {
         display: none !important;
     }
-    [data-testid="stFileUploader"] small {
-        display: none !important;
-    }
-    [data-testid="stFileUploader"] label {
+    [data-testid="stFileUploader"] small, 
+    [data-testid="stFileUploader"] label,
+    [data-testid="stFileUploader"] span {
         display: none !important;
     }
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
-        width: 42px !important;
-        height: 42px !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
         background-color: #f8f9fa !important;
         border: 1px solid #dfe1e5 !important;
         color: #5f6368 !important;
@@ -83,6 +99,7 @@ st.markdown("""
         align-items: center !important;
         justify-content: center !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        cursor: pointer;
     }
     [data-testid="stFileUploader"] button:hover {
         background-color: #f1f3f4 !important;
@@ -137,7 +154,7 @@ def fetch_exact_price_and_product_info(query):
     return snippets
 
 # 4. 네이티브 그리드로 텍스트 입력창과 업로드 버튼 배치
-col_search, col_upload = st.columns([10, 1], vertical_alignment="center")
+col_search, col_upload = st.columns([10, 1])
 
 with col_search:
     search_query = st.text_input("통합 검색", placeholder="diyv에게 말하기", label_visibility="collapsed")
