@@ -6,8 +6,13 @@ import google.generativeai as genai
 import requests
 import io
 
-# 1. 페이지 설정
-st.set_page_config(page_title="diyv - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
+# 1. 페이지 설정 (초기 테마 및 레이아웃 정의)
+st.set_page_config(
+    page_title="diyv - 뷰티 정밀 검색 엔진", 
+    page_icon="🔍", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 # 로고 이미지 Base64 인코딩 함수
 def get_base64_image(image_path):
@@ -20,9 +25,15 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
+# [근본적인 해결] Streamlit 기본 상단 메뉴/데코레이션 바를 깔끔하게 숨기고 미니멀 UI 구축
 st.markdown("""
 <style>
-    /* Streamlit 기본 이미지 툴바 강제 숨김 */
+    /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 처리 */
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    
+    /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
     }
@@ -33,7 +44,7 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         width: 100%;
-        margin-top: 15px;
+        margin-top: 10px;
         margin-bottom: 25px;
     }
     .logo-link {
@@ -51,7 +62,7 @@ st.markdown("""
         display: block;
     }
 
-    /* [디브 브랜드 감성 적용] 하단 구분선(hr) 두께를 1px로 얇고 세련되게 조정 */
+    /* 하단 구분선(hr) 두께 1px, #41b2e7 메인 컬러 적용 */
     hr {
         border: none !important;
         height: 1px !important;
@@ -72,7 +83,24 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 새로고침이 되는 커스텀 로고 렌더링
+# 3. 우측 상단 미니멀 테마 토글 버튼 배치 (세션 상태 활용)
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "light"
+
+# 상단 우측 정렬을 위한 그리드 구성
+col_space, col_toggle = st.columns([10, 1])
+with col_toggle:
+    # 아이콘 버튼으로 라이트/다크모드 전환
+    if st.session_state.theme_mode == "light":
+        if st.button("🌙", help="다크 모드로 전환"):
+            st.session_state.theme_mode = "dark"
+            st.rerun()
+    else:
+        if st.button("☀️", help="라이트 모드로 전환"):
+            st.session_state.theme_mode = "light"
+            st.rerun()
+
+# 4. 새로고침이 되는 커스텀 로고 렌더링
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
@@ -107,7 +135,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바
+# 5. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바
 search_bar_html = """
 <!DOCTYPE html>
 <html>
@@ -204,7 +232,7 @@ components.html(search_bar_html, height=90)
 
 st.markdown("---")
 
-# 5. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
+# 6. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
 query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
