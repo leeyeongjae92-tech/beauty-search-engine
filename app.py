@@ -3,11 +3,20 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정
+# 1. 페이지 설정 (순정 테마 토글 버튼과 완벽 호환)
 st.set_page_config(page_title="뷰티 검색 클린존 - RAG Pipeline", page_icon="🔍", layout="centered")
 
-# 2. 사이드바: API 설정
-st.sidebar.title("⚙️ API 설정")
+st.markdown("""
+<style>
+    .stTextInput input { 
+        border-radius: 30px !important; 
+        padding: 15px 25px !important; 
+        font-size: 16px !important; 
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Streamlit Secrets에서 안전하게 키를 불러오기 (배포 환경 자동 연동)
 try:
     secret_gemini = st.secrets.get("GEMINI_API_KEY", "")
     secret_serper = st.secrets.get("SERPER_API_KEY", "")
@@ -15,13 +24,15 @@ except Exception:
     secret_gemini = ""
     secret_serper = ""
 
+# 2. 사이드바: API 설정
+st.sidebar.title("⚙️ API 설정")
 api_key_input = st.sidebar.text_input("Gemini API Key", value=secret_gemini, type="password", placeholder="AIza...")
 search_api_key = st.sidebar.text_input("Serper Search API Key", value=secret_serper, type="password", placeholder="실시간 웹 검색용 키")
-st.sidebar.markdown("<p style='font-size:12px;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:12px; opacity:0.7;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
 
-# 3. 메인 타이틀 (순정 컴포넌트 활용으로 가독성 이슈 원천 차단)
-st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🔍 뷰티 검색 엔진</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 14px;'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</p>", unsafe_allow_html=True)
+# 3. 메인 타이틀
+st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🔍 뷰티 검색 엔진 (공식 가격 정밀 매칭)</h2>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px; opacity: 0.8;'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</p>", unsafe_allow_html=True)
 st.write("")
 
 # 4. 검색창 및 파일 업로드
