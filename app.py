@@ -49,8 +49,12 @@ st.markdown("""
         display: block;
     }
 
-    /* [근본적인 해결] st.file_uploader의 거대한 회색 박스와 200MB 안내 텍스트를 원천 차단하고 
-       구글 검색바의 카메라 버튼처럼 깔끔한 아이콘형 버튼으로 변환 */
+    /* [근본적인 해결] 수평 블록(columns) 내의 검색창과 업로드 버튼을 완벽한 일직선(수직 중앙)으로 정렬 */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+    }
+
+    /* st.file_uploader 컴팩트한 원형 버튼 스타일링 */
     [data-testid="stFileUploader"] {
         width: auto !important;
     }
@@ -59,7 +63,6 @@ st.markdown("""
         border: none !important;
         background: transparent !important;
     }
-    /* 드롭존 안내 텍스트 및 용량 제한 문구(200MB...) 영역 완전 숨김 */
     [data-testid="stFileUploader"] section > div {
         display: none !important;
     }
@@ -69,7 +72,6 @@ st.markdown("""
     [data-testid="stFileUploader"] label {
         display: none !important;
     }
-    /* 업로드 버튼을 세련된 원형 아이콘 버튼 스타일로 정돈 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
         width: 42px !important;
@@ -134,7 +136,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. [근본적 해결] 네이티브 그리드로 텍스트 입력창과 압축된 업로드 버튼을 한 줄에 배치
+# 4. 네이티브 그리드로 텍스트 입력창과 업로드 버튼 배치
 col_search, col_upload = st.columns([10, 1], vertical_alignment="center")
 
 with col_search:
