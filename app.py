@@ -43,7 +43,7 @@ serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 # 3. DIYV 로고 출력
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
 
-# 4. 모바일에서도 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
+# 4. 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
 
 def fetch_exact_price_and_product_info(query):
@@ -63,7 +63,8 @@ def fetch_exact_price_and_product_info(query):
     return snippets
 
 with tab1:
-    search_query = st.text_input("브랜드 또는 제품명 검색", placeholder="예: MIFARSOUL 애프터썬", label_visibility="collapsed")
+    # 요청하신 깔끔한 placeholder 문구 적용
+    search_query = st.text_input("브랜드 또는 제품명 검색", placeholder="브랜드 또는 제품명을 입력하세요", label_visibility="collapsed")
     if search_query:
         query = search_query.strip()
         if not gemini_api_key:
