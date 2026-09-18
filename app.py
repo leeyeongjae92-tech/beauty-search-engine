@@ -49,7 +49,7 @@ st.markdown("""
         display: block;
     }
 
-    /* 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 고정 */
+    /* [근본적인 해결] 수평 블록 및 각 컬럼 셀의 수직 정렬을 완벽한 중앙으로 강제 고정 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         align-items: center !important;
@@ -57,13 +57,10 @@ st.markdown("""
         gap: 8px !important;
     }
 
-    div[data-testid="stHorizontalBlock"] > div:first-child {
-        flex: 1 !important;
-    }
-    div[data-testid="stHorizontalBlock"] > div:last-child {
-        flex: 0 0 auto !important;
+    div[data-testid="column"] {
         display: flex !important;
         align-items: center !important;
+        height: auto !important;
     }
 
     /* 파일 업로더 드롭존 박스 영역 정돈 */
@@ -85,7 +82,7 @@ st.markdown("""
         display: none !important;
     }
     
-    /* [근본적인 해결] 검색창 기본 세로 높이에 딱 맞게 카메라 버튼 크기를 38px로 정밀 축소 */
+    /* 카메라 아이콘 버튼 크기 및 위치 정교하게 세팅 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
         width: 38px !important;
@@ -106,7 +103,7 @@ st.markdown("""
         border-color: #dadce0 !important;
     }
     
-    /* 카메라 SVG 아이콘 크기를 버튼 크기에 비례하여 완벽하게 안착 */
+    /* 카메라 SVG 아이콘 정중앙 배치 */
     [data-testid="stFileUploader"] button svg {
         display: none !important;
     }
