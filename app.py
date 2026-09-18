@@ -25,7 +25,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] Streamlit 기본 헤더 숨김 및 미니멀 레이아웃 스타일링
+# [근본적인 해결] 상단 메뉴 숨김 및 미니멀 레이아웃 스타일링
 st.markdown("""
 <style>
     /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
@@ -87,7 +87,7 @@ serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 query_params = st.query_params
 current_theme = query_params.get("theme", "light")
 
-# 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS
+# 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS (이모지 센터 정밀 보정 완료)
 toggle_btn_html = f"""
 <!DOCTYPE html>
 <html>
@@ -105,7 +105,7 @@ toggle_btn_html = f"""
   .theme-btn {{
     background: #ffffff;
     border: 1px solid #dfe1e5;
-    border-radius: 50% !important; /* 완벽한 원형 곡률 고정 */
+    border-radius: 50% !important;
     width: 42px;
     height: 42px;
     min-width: 42px;
@@ -118,6 +118,10 @@ toggle_btn_html = f"""
     transition: all 0.2s ease;
     outline: none;
     font-size: 18px;
+    /* 이모지 폰트 특유의 시각적 쏠림 현상을 상쇄하여 완벽한 정중앙 위치 보정 */
+    line-height: 1;
+    padding-left: 1px;
+    padding-top: 1px;
   }}
   .theme-btn:hover {{
     border-color: #41b2e7;
@@ -142,7 +146,6 @@ toggle_btn_html = f"""
 </html>
 """
 
-# 우측 상단에 완벽한 원형 토글 컴포넌트 배치 (높이 50px로 우측 상단에 밀착)
 components.html(toggle_btn_html, height=50)
 
 # 4. 새로고침이 되는 커스텀 로고 렌더링
