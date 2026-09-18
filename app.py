@@ -1,8 +1,10 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 from PIL import Image
 import google.generativeai as genai
 import requests
+import io
 
 # 1. 페이지 설정
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
@@ -25,7 +27,7 @@ st.markdown("""
         display: none !important;
     }
 
-    /* 로고 중앙 정렬 */
+    /* 로고 중앙 정렬 및 새로고침 인터랙션 */
     .logo-wrapper {
         display: flex;
         justify-content: center;
@@ -47,75 +49,6 @@ st.markdown("""
         max-width: 100%;
         height: auto;
         display: block;
-    }
-
-    /* [근본적인 해결] 수평 블록 및 각 컬럼 셀의 수직 정렬을 완벽한 중앙으로 강제 고정 */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-    }
-
-    div[data-testid="column"] {
-        display: flex !important;
-        align-items: center !important;
-        height: auto !important;
-    }
-
-    /* 파일 업로더 드롭존 박스 영역 정돈 */
-    [data-testid="stFileUploader"] {
-        width: auto !important;
-        margin: 0 !important;
-    }
-    [data-testid="stFileUploader"] section {
-        padding: 0px !important;
-        border: none !important;
-        background: transparent !important;
-        min-height: unset !important;
-    }
-    [data-testid="stFileUploader"] section > div > div:not(:has(button)) {
-        display: none !important;
-    }
-    [data-testid="stFileUploader"] label,
-    [data-testid="stFileUploader"] small {
-        display: none !important;
-    }
-    
-    /* 카메라 아이콘 버튼 크기 및 위치 정교하게 세팅 */
-    [data-testid="stFileUploader"] button {
-        border-radius: 50% !important;
-        width: 38px !important;
-        height: 38px !important;
-        min-height: 38px !important;
-        background-color: #f8f9fa !important;
-        border: 1px solid #dfe1e5 !important;
-        color: transparent !important;
-        position: relative !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        cursor: pointer;
-    }
-    [data-testid="stFileUploader"] button:hover {
-        background-color: #f1f3f4 !important;
-        border-color: #dadce0 !important;
-    }
-    
-    /* 카메라 SVG 아이콘 정중앙 배치 */
-    [data-testid="stFileUploader"] button svg {
-        display: none !important;
-    }
-    [data-testid="stFileUploader"] button::after {
-        content: "";
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
     }
 
     @media (max-width: 640px) {
@@ -165,26 +98,118 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. 네이티브 그리드로 텍스트 입력창과 카메라 업로드 버튼 일직선 배치
-col_search, col_upload = st.columns([10, 1])
+# 4. [근본적 해결] HTML/JS 커스텀 구글 검색바 컴포넌트 렌더링
+# Streamlit의 닫힌 DOM을 우회하여 웹 표준 구글 스타일 검색창과 카메라 업로드 버튼을 완벽하게 통합
+search_bar_html = """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: transparent;
+  }
+  .search-container {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #dfe1e5;
+    border-radius: 28px;
+    padding: 8px 16px;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+    transition: box-shadow 0.2s, border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .search-container:hover, .search-container:focus-within {
+    box-shadow: 0 1px 8px rgba(32, 33, 36, 0.15);
+    border-color: rgba(223, 225, 229, 0);
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: transparent;
+    color: #202124;
+    padding: 0 10px;
+    height: 32px;
+  }
+  .icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #5f6368;
+    transition: background 0.2s;
+  }
+  .icon-btn:hover {
+    background-color: #f1f3f4;
+  }
+</style>
+</head>
+<body>
+  <div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="diyv에게 말하기" />
+    <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
+    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
+      <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="#5f6368">
+        <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+      </svg>
+    </button>
+  </div>
 
-with col_search:
-    search_query = st.text_input("통합 검색", placeholder="diyv에게 말하기", label_visibility="collapsed")
+  <script>
+    const input = document.getElementById('searchInput');
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && input.value.trim() !== '') {
+        const query = encodeURIComponent(input.value.trim());
+        window.parent.location.search = '?q=' + query;
+      }
+    });
 
-with col_upload:
-    uploaded_file = st.file_uploader("사진 업로드", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+    function handleFile(inputElement) {
+      if (inputElement.files && inputElement.files[0]) {
+        const file = inputElement.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const base64Data = encodeURIComponent(e.target.result);
+          window.parent.location.search = '?img_data=' + base64Data;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  </script>
+</body>
+</html>
+"""
+
+components.html(search_bar_html, height=65)
 
 st.markdown("---")
 
-# 5. 검색 및 비전 분석 처리 로직
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, width=280, caption="업로드된 실물 제품 사진")
-    
-    if not gemini_api_key:
-        st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
-    else:
-        try:
+# 5. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
+query_params = st.query_params
+search_query = query_params.get("q", "")
+img_base64_data = query_params.get("img_data", "")
+
+if img_base64_data:
+    try:
+        # Base64 이미지 데이터 파싱
+        header, encoded = img_base64_data.split(",", 1)
+        image_bytes = base64.b64decode(encoded)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        st.image(image, width=280, caption="업로드된 실물 제품 사진")
+        
+        if not gemini_api_key:
+            st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+        else:
             with st.spinner("🤖 [DIYV] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
                 model_name = 'gemini-3.6-flash'
@@ -229,9 +254,9 @@ if uploaded_file is not None:
                     with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
                         for s in web_snippets:
                             st.info(s)
-                    
-        except Exception as e:
-            st.error(f"분석 중 오류가 발생했습니다: {e}")
+                            
+    except Exception as e:
+        st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
 elif search_query:
     query = search_query.strip()
