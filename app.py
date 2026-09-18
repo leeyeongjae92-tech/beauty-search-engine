@@ -28,34 +28,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Streamlit Secrets 연동
-try:
-    secret_gemini = st.secrets.get("GEMINI_API_KEY", "")
-    secret_serper = st.secrets.get("SERPER_API_KEY", "")
-except Exception:
-    secret_gemini = ""
-    secret_serper = ""
-
-# 2. 사이드바: API 설정
-st.sidebar.title("⚙️ API 설정")
-api_key_input = st.sidebar.text_input("Gemini API Key", value=secret_gemini, type="password", placeholder="AIza...")
-search_api_key = st.sidebar.text_input("Serper Search API Key", value=secret_serper, type="password", placeholder="실시간 웹 검색용 키")
-st.sidebar.markdown("<p style='font-size:12px; opacity:0.7;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
+# 2. 백엔드 시크릿에서 API 키 자동 로드 (사용자 노출 원천 차단)
+gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
+serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
 # 3. DIYV 로고 및 슬로건
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
 st.markdown("<div class='diyv-subtitle'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</div>", unsafe_allow_html=True)
 
-# 4. 안정적인 정석 인터페이스 배치 (텍스트 검색 & 이미지 업로드 분리형 구조)
+# 4. 안정적인 인터페이스 (텍스트 검색 & 이미지 분석 탭)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
 
 def fetch_exact_price_and_product_info(query):
     snippets = []
-    if search_api_key:
+    if serper_api_key:
         try:
             url = "https://google.serper.dev/search"
             payload = {"q": f"{query} 공식몰 가격 원 올리브영", "gl": "kr", "hl": "ko"}
-            headers = {"X-API-KEY": search_api_key, "Content-Type": "application/json"}
+            headers = {"X-API-KEY": serper_api_key, "Content-Type": "application/json"}
             response = requests.post(url, json=payload, headers=headers)
             if response.status_code == 200:
                 data = response.json()
@@ -69,16 +59,18 @@ with tab1:
     search_query = st.text_input("브랜드 또는 제품명 검색", placeholder="예: MIFARSOUL 애프터썬", label_visibility="collapsed")
     if search_query:
         query = search_query.strip()
-        with st.spinner(f"'{query}' 실시간 가격 분석 중..."):
-            web_snippets = fetch_exact_price_and_product_info(query)
-            if api_key_input:
-                genai.configure(api_key=api_key_input)
+        if not gemini_api_key:
+            st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+        else:
+            with st.spinner(f"'{query}' 실시간 가격 분석 중..."):
+                web_snippets = fetch_exact_price_and_product_info(query)
+                genai.configure(api_key=gemini_api_key)
             
-        st.success(f"✨ 검색 완료: **[{query}]**")
-        st.markdown(f"### {query}")
-        st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 DIYV 스탠다드")
-        st.markdown("#### 🏆 DIYV 객관적 팩트 매트릭스 (Fact Matrix)")
-        st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
+            st.success(f"✨ 검색 완료: **[{query}]**")
+            st.markdown(f"### {query}")
+            st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 DIYV 스탠다드")
+            st.markdown("#### 🏆 DIYV 객관적 팩트 매트릭스 (Fact Matrix)")
+            st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
 
 with tab2:
     uploaded_file = st.file_uploader("화장품 패키지 실물 사진을 업로드하세요", type=["jpg", "png", "jpeg"])
@@ -86,12 +78,12 @@ with tab2:
         image = Image.open(uploaded_file)
         st.image(image, width=280, caption="업로드된 실물 제품 사진")
         
-        if not api_key_input:
-            st.error("⚠️ 좌측 사이드바 또는 Streamlit Secrets에 Gemini API 키를 입력해 주세요!")
+        if not gemini_api_key:
+            st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
         else:
             try:
                 with st.spinner("🤖 [DIYV] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
-                    genai.configure(api_key=api_key_input)
+                    genai.configure(api_key=gemini_api_key)
                     model_name = 'gemini-3.6-flash'
                     model = genai.GenerativeModel(model_name)
                     
@@ -135,6 +127,6 @@ with tab2:
                         with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
                             for s in web_snippets:
                                 st.info(s)
-                    
+                        
             except Exception as e:
                 st.error(f"분석 중 오류가 발생했습니다: {e}")
