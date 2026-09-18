@@ -66,7 +66,7 @@ st.markdown("""
         align-items: center !important;
     }
 
-    /* [근본적인 해결] 파일 업로더 드롭존 박스와 안내 문구만 숨기고, 버튼 자체는 정상 노출 */
+    /* 파일 업로더 드롭존 박스 영역 완전 정돈 */
     [data-testid="stFileUploader"] {
         width: auto !important;
         margin: 0 !important;
@@ -77,7 +77,6 @@ st.markdown("""
         background: transparent !important;
         min-height: unset !important;
     }
-    /* 드롭존 내부의 안내 텍스트 영역만 타겟팅하여 숨김 */
     [data-testid="stFileUploader"] section > div > div:not(:has(button)) {
         display: none !important;
     }
@@ -86,7 +85,7 @@ st.markdown("""
         display: none !important;
     }
     
-    /* 업로드 버튼을 세련된 원형 버튼 스타일로 정돈 */
+    /* [근본적인 해결] 'Upload' 텍스트를 숨기고, 업로드 버튼을 구글 스타일의 세련된 카메라 아이콘 버튼으로 변환 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
         width: 44px !important;
@@ -94,7 +93,8 @@ st.markdown("""
         min-height: 44px !important;
         background-color: #f8f9fa !important;
         border: 1px solid #dfe1e5 !important;
-        color: #5f6368 !important;
+        color: transparent !important; /* 기존 텍스트 색상을 투명하게 처리하여 숨김 */
+        position: relative !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -104,6 +104,21 @@ st.markdown("""
     [data-testid="stFileUploader"] button:hover {
         background-color: #f1f3f4 !important;
         border-color: #dadce0 !important;
+    }
+    
+    /* 버튼 내부의 기존 업로드 화살표 아이콘을 제거하고 순수 카메라 SVG 아이콘을 CSS로 주입 */
+    [data-testid="stFileUploader"] button svg {
+        display: none !important;
+    }
+    [data-testid="stFileUploader"] button::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
     }
 
     @media (max-width: 640px) {
@@ -153,7 +168,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. 네이티브 그리드로 텍스트 입력창과 업로드 버튼 일직선 배치
+# 4. 네이티브 그리드로 텍스트 입력창과 카메라 업로드 버튼 일직선 배치
 col_search, col_upload = st.columns([10, 1])
 
 with col_search:
