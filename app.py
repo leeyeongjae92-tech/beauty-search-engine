@@ -3,21 +3,11 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정
 st.set_page_config(page_title="뷰티 검색 클린존 - RAG Pipeline", page_icon="🔍", layout="centered")
 
-st.markdown("""
-<style>
-    .stApp { background-color: #ffffff; }
-    .stTextInput input { border-radius: 30px; border: 2px solid #eeeeee; padding: 15px 25px; font-size: 16px; }
-    .badge-makeup { display: inline-block; background-color: #fff0f5; color: #d63384; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 10px; }
-    .badge-skincare { display: inline-block; background-color: #f1f8f5; color: #1a73e8; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 10px; }
-    .brand-card { background-color: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #f0f0f0; margin-bottom: 20px; }
-    .search-snippet { background-color: #f8f9fa; padding: 10px; border-left: 3px solid #1a73e8; font-size: 12px; color: #555; margin-bottom: 8px; }
-</style>
-""", unsafe_allow_html=True)
-
-# Streamlit Secrets에서 안전하게 키를 불러오기 (배포 환경 자동 연동)
+# 2. 사이드바: API 설정
+st.sidebar.title("⚙️ API 설정")
 try:
     secret_gemini = st.secrets.get("GEMINI_API_KEY", "")
     secret_serper = st.secrets.get("SERPER_API_KEY", "")
@@ -25,24 +15,23 @@ except Exception:
     secret_gemini = ""
     secret_serper = ""
 
-# 2. 사이드바: API 설정 (Secrets가 있으면 자동으로 채워짐)
-st.sidebar.title("⚙️ API 설정")
 api_key_input = st.sidebar.text_input("Gemini API Key", value=secret_gemini, type="password", placeholder="AIza...")
 search_api_key = st.sidebar.text_input("Serper Search API Key", value=secret_serper, type="password", placeholder="실시간 웹 검색용 키")
-st.sidebar.markdown("<p style='font-size:12px; color:#666;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:12px;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🔍 뷰티 검색 엔진 (공식 가격 정밀 매칭)</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #888; font-size: 14px;'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</p>", unsafe_allow_html=True)
+# 3. 메인 타이틀 (순정 컴포넌트 활용으로 가독성 이슈 원천 차단)
+st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🔍 뷰티 검색 엔진</h2>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px;'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</p>", unsafe_allow_html=True)
 st.write("")
 
-# 3. 검색창 및 파일 업로드
+# 4. 검색창 및 파일 업로드
 col1, col2 = st.columns([5, 1])
 with col1:
     search_query = st.text_input("검색어", placeholder="브랜드명 또는 제품명 직접 입력", label_visibility="collapsed")
 with col2:
     uploaded_file = st.file_uploader("사진", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
 
-# 4. [고도화된 RAG] 가격 및 공식몰 정보를 집중 타겟팅하는 실시간 웹 검색 함수
+# 5. [RAG] 가격 및 공식몰 정보 집중 검색 함수
 def fetch_exact_price_and_product_info(query):
     snippets = []
     if search_api_key:
@@ -59,12 +48,10 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-
-# 5. 메인 실행 흐름
+# 6. 메인 실행 흐름
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    image_display = image.copy() # 원본 이미지 유지를 위한 복사
-    st.image(image_display, width=280, caption="업로드된 실물 제품 사진")
+    st.image(image, width=280, caption="업로드된 실물 제품 사진")
     
     if not api_key_input:
         st.error("⚠️ 좌측 사이드바 또는 Streamlit Secrets에 Gemini API 키를 입력해 주세요!")
@@ -75,7 +62,6 @@ if uploaded_file is not None:
                 model_name = 'gemini-3.6-flash'
                 model = genai.GenerativeModel(model_name)
                 
-                # 1단계: 정확한 제품명 및 브랜드 식별
                 extract_prompt = "이 화장품 사진에 적힌 브랜드 정식 명칭과 제품명을 정확하게 한 줄로 요약해줘. (예: MIFARSOUL 애프터썬 100 수딩 젤 패드)"
                 extract_response = model.generate_content([image, extract_prompt])
                 identified_product_name = extract_response.text.strip()
@@ -93,7 +79,7 @@ if uploaded_file is not None:
 
                 [필수 작성 지침]
                 1. 가격 항목에는 절대 '중저가', '고가' 같은 뭉뚱그린 표현을 쓰지 마세요.
-                2. 웹 검색 데이터나 공식몰 기준의 **정확한 판매 가격(예: 00,000원)**과 용량 대비 단위 가격을 명시해주세요. 만약 정확한 가격을 찾지 못한 경우에만 예상 정가를 원화 단위로 적어주세요.
+                2. 웹 검색 데이터나 공식몰 기준의 **정확한 판매 가격(예: 00,000원)**과 용량 대비 단위 가격을 명시해주세요.
                 3. 마케팅 노이즈와 과장된 수식어를 완전히 배제하고 오직 팩트 위주로 작성하세요.
 
                 반드시 아래 항목에 맞춰 한국어로 정확히 답변해주세요:
@@ -115,7 +101,7 @@ if uploaded_file is not None:
                 if web_snippets:
                     with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
                         for s in web_snippets:
-                            st.markdown(f"<div class='search-snippet'>{s}</div>", unsafe_allow_html=True)
+                            st.info(s)
                 
         except Exception as e:
             st.error(f"분석 중 오류가 발생했습니다: {e}")
@@ -124,18 +110,11 @@ elif search_query:
     query = search_query.strip()
     with st.spinner(f"'{query}' 실시간 가격 분석 중..."):
         web_snippets = fetch_exact_price_and_product_info(query)
-        grounding_text = "\n".join(web_snippets) if web_snippets else ""
-        
         if api_key_input:
             genai.configure(api_key=api_key_input)
         
     st.success(f"✨ 검색 완료: **[{query}]**")
     st.markdown(f"### {query}")
-    st.markdown(f"""
-    <div class="brand-card">
-        <b>브랜드 철학:</b> 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 스탠다드<br><br>
-        <b>공식 판매가:</b> 실시간 웹 데이터 연동 완료
-    </div>
-    """, unsafe_allow_html=True)
+    st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 스탠다드")
     st.markdown("#### 🏆 객관적 팩트 매트릭스 (Fact Matrix)")
-    st.info(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
+    st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
