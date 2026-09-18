@@ -49,7 +49,7 @@ st.markdown("""
         display: block;
     }
 
-    /* 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 강제 고정 */
+    /* 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 고정 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         align-items: center !important;
@@ -66,7 +66,13 @@ st.markdown("""
         align-items: center !important;
     }
 
-    /* 파일 업로더 드롭존 박스 영역 완전 정돈 */
+    /* 검색창 내부 입력 필드의 실제 세로 높이 기준 설정 */
+    .stTextInput input {
+        min-height: 48px !important;
+        height: 48px !important;
+    }
+
+    /* 파일 업로더 드롭존 박스 영역 정돈 */
     [data-testid="stFileUploader"] {
         width: auto !important;
         margin: 0 !important;
@@ -85,15 +91,15 @@ st.markdown("""
         display: none !important;
     }
     
-    /* [근본적인 해결] 'Upload' 텍스트를 숨기고, 업로드 버튼을 구글 스타일의 세련된 카메라 아이콘 버튼으로 변환 */
+    /* [근본적인 해결] 카메라 아이콘 버튼의 높이를 검색창 입력 필드 높이(48px)와 정확히 일치시킴 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
-        width: 44px !important;
-        height: 44px !important;
-        min-height: 44px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-height: 48px !important;
         background-color: #f8f9fa !important;
         border: 1px solid #dfe1e5 !important;
-        color: transparent !important; /* 기존 텍스트 색상을 투명하게 처리하여 숨김 */
+        color: transparent !important;
         position: relative !important;
         display: flex !important;
         align-items: center !important;
@@ -106,15 +112,15 @@ st.markdown("""
         border-color: #dadce0 !important;
     }
     
-    /* 버튼 내부의 기존 업로드 화살표 아이콘을 제거하고 순수 카메라 SVG 아이콘을 CSS로 주입 */
+    /* 카메라 SVG 아이콘 크기 및 위치 정교하게 조율 */
     [data-testid="stFileUploader"] button svg {
         display: none !important;
     }
     [data-testid="stFileUploader"] button::after {
         content: "";
         position: absolute;
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: center;
