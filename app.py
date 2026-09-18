@@ -51,10 +51,10 @@ st.markdown("""
         display: block;
     }
 
-    /* [디브 브랜드 감성 적용] 하단 구분선(hr) 색상을 #41b2e7 메인 컬러로 변경 */
+    /* [디브 브랜드 감성 적용] 하단 구분선(hr) 두께를 1px로 얇고 세련되게 조정 */
     hr {
         border: none !important;
-        height: 2px !important;
+        height: 1px !important;
         background-color: #41b2e7 !important;
         margin-top: 25px !important;
         margin-bottom: 25px !important;
