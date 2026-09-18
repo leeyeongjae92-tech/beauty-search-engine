@@ -98,7 +98,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. [근본적 해결] HTML/JS 커스텀 구글 검색바 (그림자 영역이 잘리지 않도록 상하 패딩 및 넉넉한 iframe 높이 부여)
+# 4. [근본적 해결] HTML/JS 커스텀 구글 검색바 (좌우 여백을 충분히 주어 그림자가 잘리지 않고 둥글게 퍼지도록 보정)
 search_bar_html = """
 <!DOCTYPE html>
 <html>
@@ -106,7 +106,7 @@ search_bar_html = """
 <style>
   body {
     margin: 0;
-    padding: 10px 4px; /* 그림자가 잘리지 않도록 상하좌우 충분한 여백 확보 */
+    padding: 12px 14px; /* 좌우 여백을 넉넉히 주어 그림자가 각지지 않고 부드럽게 둥글게 퍼지도록 수정 */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: transparent;
     box-sizing: border-box;
@@ -124,7 +124,7 @@ search_bar_html = """
     box-sizing: border-box;
   }
   .search-container:hover, .search-container:focus-within {
-    box-shadow: 0 4px 16px rgba(32, 33, 36, 0.16); /* 호버 시 퍼지는 그림자 깊이감 조정 */
+    box-shadow: 0 4px 16px rgba(32, 33, 36, 0.16);
     border-color: rgba(223, 225, 229, 0);
   }
   .search-input {
@@ -190,8 +190,7 @@ search_bar_html = """
 </html>
 """
 
-# iframe 높이를 85px로 넉넉하게 주어 그림자가 잘리지 않도록 함
-components.html(search_bar_html, height=85)
+components.html(search_bar_html, height=90)
 
 st.markdown("---")
 
