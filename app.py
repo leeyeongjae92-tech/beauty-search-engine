@@ -25,7 +25,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] 우측 상단 토글 버튼을 검색창 카메라 아이콘과 동일한 완전한 원형 곡률로 스타일링
+# [근본적인 해결] Streamlit 기본 헤더 숨김 및 미니멀 레이아웃 스타일링
 st.markdown("""
 <style>
     /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
@@ -36,42 +36,6 @@ st.markdown("""
     /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
-    }
-
-    /* 우측 상단 토글 버튼 영역 정렬 */
-    [data-testid="stHorizontalBlock"] {
-        align-items: center !important;
-        justify-content: flex-end !important;
-        margin-bottom: -15px !important;
-    }
-    [data-testid="stHorizontalBlock"] > div:last-child {
-        flex: 0 0 auto !important;
-        width: auto !important;
-    }
-    
-    /* [근본적 해결] 테마 버튼 모양을 검색창 아이콘과 같은 완벽한 원형(50%) 및 #41b2e7 호버 효과 적용 */
-    div.stButton > button {
-        border-radius: 50% !important;
-        width: 42px !important;
-        height: 42px !important;
-        min-height: 42px !important;
-        padding: 0px !important;
-        background-color: #ffffff !important;
-        border: 1px solid #dfe1e5 !important;
-        box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.2s ease !important;
-    }
-    div.stButton > button:hover {
-        border-color: #41b2e7 !important;
-        box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
-        background-color: rgba(65, 178, 231, 0.05) !important;
-    }
-    div.stButton > button p {
-        font-size: 18px !important;
-        margin: 0 !important;
     }
 
     /* 로고 중앙 정렬 및 새로고침 인터랙션 */
@@ -119,20 +83,67 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 우측 상단 미니멀 원형 테마 토글 버튼 배치
-if "theme_mode" not in st.session_state:
-    st.session_state.theme_mode = "light"
+# 3. URL 쿼리 파라미터를 통해 테마 상태 관리
+query_params = st.query_params
+current_theme = query_params.get("theme", "light")
 
-_, col_toggle = st.columns([12, 1])
-with col_toggle:
-    if st.session_state.theme_mode == "light":
-        if st.button("🌙", help="다크 모드로 전환"):
-            st.session_state.theme_mode = "dark"
-            st.rerun()
-    else:
-        if st.button("☀️", help="라이트 모드로 전환"):
-            st.session_state.theme_mode = "light"
-            st.rerun()
+# 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS
+toggle_btn_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {{
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    background: transparent;
+    box-sizing: border-box;
+  }}
+  .theme-btn {{
+    background: #ffffff;
+    border: 1px solid #dfe1e5;
+    border-radius: 50% !important; /* 완벽한 원형 곡률 고정 */
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08);
+    transition: all 0.2s ease;
+    outline: none;
+    font-size: 18px;
+  }}
+  .theme-btn:hover {{
+    border-color: #41b2e7;
+    box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25);
+    background-color: rgba(65, 178, 231, 0.05);
+  }}
+</style>
+</head>
+<body>
+  <button class="theme-btn" onclick="toggleTheme()" title="테마 변경">
+    {'☀️' if current_theme == 'dark' else '🌙'}
+  </button>
+
+  <script>
+    function toggleTheme() {{
+      const current = "{current_theme}";
+      const next = current === "light" ? "dark" : "light";
+      window.parent.location.search = '?theme=' + next;
+    }}
+  </script>
+</body>
+</html>
+"""
+
+# 우측 상단에 완벽한 원형 토글 컴포넌트 배치 (높이 50px로 우측 상단에 밀착)
+components.html(toggle_btn_html, height=50)
 
 # 4. 새로고침이 되는 커스텀 로고 렌더링
 if img_box := img_base64:
@@ -242,7 +253,7 @@ search_bar_html = """
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && input.value.trim() !== '') {
         const query = encodeURIComponent(input.value.trim());
-        window.parent.location.search = '?q=' + query;
+        window.parent.location.search = '?q=' + query + '&theme=""" + current_theme + """';
       }
     });
 
@@ -252,7 +263,7 @@ search_bar_html = """
         const reader = new FileReader();
         reader.onload = function(e) {
           const base64Data = encodeURIComponent(e.target.result);
-          window.parent.location.search = '?img_data=' + base64Data;
+          window.parent.location.search = '?img_data=' + base64Data + '&theme=""" + current_theme + """';
         };
         reader.readAsDataURL(file);
       }
@@ -267,7 +278,6 @@ components.html(search_bar_html, height=90)
 st.markdown("---")
 
 # 6. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
-query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
 
