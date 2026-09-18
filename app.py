@@ -3,35 +3,13 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 (구글 웹 폰트 로드 및 모바일 반응형 디자인 포함)
+# 1. 페이지 설정 (반응형 뷰포트 최적화)
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
-    /* Google Fonts (Montserrat 등 모던하고 깔끔한 폰트 적용) */
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
-
-    /* 데스크톱 기준 커스텀 폰트 로고 스타일 */
-    .diyv-logo {
-        text-align: center;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 56px;
-        font-weight: 800;
-        letter-spacing: -1.5px;
-        margin-top: 15px;
-        margin-bottom: 25px;
-        background: linear-gradient(90deg, #4285F4 0%, #EA4335 35%, #FBBC05 70%, #34A853 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* 모바일 환경 반응형 대응 */
+    /* 모바일 환경 대응 커스텀 여백 및 입력창 조정 */
     @media (max-width: 640px) {
-        .diyv-logo {
-            font-size: 38px !important;
-            margin-top: 10px;
-            margin-bottom: 15px;
-        }
         .stTextInput input {
             font-size: 14px !important;
             padding: 10px 14px !important;
@@ -44,8 +22,17 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 커스텀 폰트가 적용된 DIYV 로고 출력
-st.markdown("<div class='diyv-logo'>diyv</div>", unsafe_allow_html=True)
+# 3. 준비된 커스텀 로고 이미지 정중앙 배치 (가로 폭 240px 최적화)
+col_l, col_c, col_r = st.columns([1, 2, 1])
+with col_c:
+    try:
+        logo_image = Image.open("logo.png")
+        st.image(logo_image, width=240)
+    except Exception:
+        # 파일 로드 예외 시 기본 텍스트 폴백 처리
+        st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
+
+st.write("") # 간격 조정
 
 # 4. 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
