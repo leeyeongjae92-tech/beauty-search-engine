@@ -25,7 +25,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] 상단 메뉴 숨김 및 우측 상단 원형 토글 버튼 배치 (전체 레이아웃 위치는 원상복구)
+# [근본적인 해결] 우측 상단 토글 버튼을 검색창 카메라 아이콘과 동일한 완전한 원형 곡률로 스타일링
 st.markdown("""
 <style>
     /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
@@ -49,7 +49,7 @@ st.markdown("""
         width: auto !important;
     }
     
-    /* Streamlit 버튼을 검색창 카메라 버튼과 동일한 둥근 원형으로 변환 */
+    /* [근본적 해결] 테마 버튼 모양을 검색창 아이콘과 같은 완벽한 원형(50%) 및 #41b2e7 호버 효과 적용 */
     div.stButton > button {
         border-radius: 50% !important;
         width: 42px !important;
