@@ -20,7 +20,7 @@ img_base64 = get_base64_image("logo.png")
 
 st.markdown("""
 <style>
-    /* Streamlit 기본 이미지 툴바 강제 숨김 (근본적인 UI 클린징) */
+    /* Streamlit 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
     }
@@ -49,10 +49,35 @@ st.markdown("""
         display: block;
     }
 
-    /* 입력창 디자인 구조적 정돈 */
+    /* [근본적 UI 디자인] 구글 스타일의 통합 검색바 컨테이너 스타일링 */
+    .search-bar-box {
+        background-color: #ffffff;
+        border: 1px solid #dfe1e5;
+        border-radius: 28px;
+        padding: 6px 14px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        margin-bottom: 20px;
+    }
+    .search-bar-box:hover, .search-bar-box:focus-within {
+        box-shadow: 0 1px 8px rgba(32, 33, 36, 0.15);
+        border-color: rgba(223, 225, 229, 0);
+    }
+
+    /* 내부 Streamlit 입력창 테두리 및 배경 제거로 일체감 부여 */
+    .stTextInput > div > div {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
     .stTextInput > div > div > input {
-        border-radius: 20px !important;
-        padding-left: 18px !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding-left: 10px !important;
+        font-size: 16px !important;
     }
 
     @media (max-width: 640px) {
@@ -102,14 +127,17 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. [근본적 해결] Streamlit 그리드 시스템을 이용한 깔끔한 통합 검색 레이아웃
-search_col, upload_col = st.columns([6, 1], vertical_alignment="bottom")
+# 4. [근본적 해결] 구글 검색바 스타일을 구현하기 위한 통합 컨테이너 및 그리드 배치
+st.markdown('<div class="search-bar-box">', unsafe_allow_html=True)
+search_col, upload_col = st.columns([9, 1], vertical_alignment="center")
 
 with search_col:
     search_query = st.text_input("통합 검색", placeholder="diyv에게 말하기", label_visibility="collapsed")
 
 with upload_col:
     uploaded_file = st.file_uploader("사진 업로드", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
