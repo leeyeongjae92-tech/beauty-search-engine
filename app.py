@@ -25,7 +25,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] Streamlit 상단 불필요한 공백 제거 및 우측 상단 원형 토글 버튼 스타일링
+# [근본적인 해결] 상단 메뉴 숨김 및 우측 상단 원형 토글 버튼 배치 (전체 레이아웃 위치는 원상복구)
 st.markdown("""
 <style>
     /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
@@ -33,21 +33,16 @@ st.markdown("""
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     
-    /* 상단 여백 최소화하여 우측 상단에 바짝 밀착 */
-    .block-container {
-        padding-top: 1.5rem !important;
-    }
-
     /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
     }
 
-    /* [우측 상단 원형 토글 버튼 스타일링] */
+    /* 우측 상단 토글 버튼 영역 정렬 */
     [data-testid="stHorizontalBlock"] {
         align-items: center !important;
         justify-content: flex-end !important;
-        margin-bottom: -10px !important;
+        margin-bottom: -15px !important;
     }
     [data-testid="stHorizontalBlock"] > div:last-child {
         flex: 0 0 auto !important;
@@ -85,7 +80,7 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         width: 100%;
-        margin-top: 5px;
+        margin-top: 15px;
         margin-bottom: 25px;
     }
     .logo-link {
@@ -128,7 +123,6 @@ serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
-# 빈 공간을 두어 우측 끝에 버튼이 안착되도록 정렬
 _, col_toggle = st.columns([12, 1])
 with col_toggle:
     if st.session_state.theme_mode == "light":
