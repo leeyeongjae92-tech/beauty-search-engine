@@ -3,41 +3,41 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 및 DIYV 구글 스타일 UI 디자인 적용
+# 1. 페이지 설정 및 DIYV 구글 최신 검색바 테마 CSS 적용
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
-    /* 구글 스타일 검색창 디자인 (알약 형태 및 부드러운 그림자 효과) */
+    /* 구글 최신 메인 검색바 감성을 살린 알약형 인풋 스타일 */
     .stTextInput input { 
-        border-radius: 28px !important; 
-        padding: 16px 24px 16px 24px !important; 
+        border-radius: 32px !important; 
+        padding: 18px 24px 18px 24px !important; 
         font-size: 16px !important; 
-        border: 1px solid rgba(128, 128, 128, 0.3) !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
+        border: 1px solid rgba(128, 128, 128, 0.25) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.25s ease;
     }
     .stTextInput input:focus {
         border-color: #1a73e8 !important;
-        box-shadow: 0 4px 12px rgba(26,115,232,0.15) !important;
+        box-shadow: 0 4px 14px rgba(26,115,232,0.12) !important;
     }
     
-    /* DIYV 메인 로고 스타일링 */
+    /* DIYV 브랜드 로고 스타일 (구글 컬러 레퍼런스 감성 조합) */
     .diyv-logo {
         text-align: center;
-        font-size: 42px;
+        font-size: 48px;
         font-weight: 800;
-        letter-spacing: -1px;
-        margin-bottom: 0px;
-        background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+        letter-spacing: -1.5px;
+        margin-bottom: 2px;
+        background: linear-gradient(90deg, #4285F4 0%, #EA4335 35%, #FBBC05 70%, #34A853 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
     .diyv-subtitle {
         text-align: center;
         font-size: 14px;
-        opacity: 0.7;
-        margin-bottom: 30px;
+        opacity: 0.65;
+        margin-bottom: 35px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -56,14 +56,14 @@ api_key_input = st.sidebar.text_input("Gemini API Key", value=secret_gemini, typ
 search_api_key = st.sidebar.text_input("Serper Search API Key", value=secret_serper, type="password", placeholder="실시간 웹 검색용 키")
 st.sidebar.markdown("<p style='font-size:12px; opacity:0.7;'>서버 시크릿 또는 직접 입력으로 연동됩니다.</p>", unsafe_allow_html=True)
 
-# 3. DIYV 구글 스타일 메인 로고 및 슬로건
+# 3. DIYV 로고 및 슬로건
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
 st.markdown("<div class='diyv-subtitle'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</div>", unsafe_allow_html=True)
 
-# 4. 검색창 및 파일 업로드 (구글 검색창 레이아웃 연출)
+# 4. 검색창 및 파일 업로드 (구글 메인 레이아웃)
 col1, col2 = st.columns([5, 1], vertical_alignment="bottom")
 with col1:
-    search_query = st.text_input("검색어", placeholder="브랜드명 또는 제품명을 입력하세요 (예: MIFARSOUL)", label_visibility="collapsed")
+    search_query = st.text_input("검색어", placeholder="🔍 DIYV에 물어보기 (브랜드 또는 제품명 입력)", label_visibility="collapsed")
 with col2:
     uploaded_file = st.file_uploader("사진", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
 
