@@ -8,8 +8,26 @@ st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="�
 
 st.markdown("""
 <style>
-    /* 모바일 환경 대응 커스텀 여백 및 입력창 조정 */
+    /* 로고 이미지를 완벽한 물리적 정중앙으로 고정하는 플렉스 컨테이너 */
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-top: 15px;
+        margin-bottom: 25px;
+    }
+    .logo-container img {
+        width: 240px;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* 모바일 환경 대응 입력창 조정 */
     @media (max-width: 640px) {
+        .logo-container img {
+            width: 180px;
+        }
         .stTextInput input {
             font-size: 14px !important;
             padding: 10px 14px !important;
@@ -22,17 +40,24 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 준비된 커스텀 로고 이미지 정중앙 배치 (가로 폭 240px 최적화)
-col_l, col_c, col_r = st.columns([1, 2, 1])
-with col_c:
-    try:
-        logo_image = Image.open("logo.png")
-        st.image(logo_image, width=240)
-    except Exception:
-        # 파일 로드 예외 시 기본 텍스트 폴백 처리
-        st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
+# 3. 플렉스 구조를 통한 완벽한 정중앙 로고 렌더링
+try:
+    logo_image = Image.open("logo.png")
+    # PIL 이미지를 HTML/CSS 렌더링에 안전하게 올리기 위해 임시 처리가 아닌 네이티브 마크다운 활용
+    st.image(logo_image, width=240, use_container_width=False)
+except Exception:
+    st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
 
-st.write("") # 간격 조정
+# Streamlit 네이티브 이미지 정렬을 확실히 잡기 위한 전용 스타일 주입
+st.markdown("""
+<style>
+    [data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 4. 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
