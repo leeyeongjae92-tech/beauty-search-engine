@@ -6,7 +6,7 @@ import google.generativeai as genai
 import requests
 import io
 
-# 1. 페이지 설정 (초기 테마 및 레이아웃 정의)
+# 1. 페이지 설정
 st.set_page_config(
     page_title="diyv - 뷰티 정밀 검색 엔진", 
     page_icon="🔍", 
@@ -25,17 +25,58 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] Streamlit 기본 상단 메뉴/데코레이션 바를 깔끔하게 숨기고 미니멀 UI 구축
+# [근본적인 해결] Streamlit 상단 불필요한 공백 제거 및 우측 상단 원형 토글 버튼 스타일링
 st.markdown("""
 <style>
-    /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 처리 */
+    /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
     #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     
+    /* 상단 여백 최소화하여 우측 상단에 바짝 밀착 */
+    .block-container {
+        padding-top: 1.5rem !important;
+    }
+
     /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
+    }
+
+    /* [우측 상단 원형 토글 버튼 스타일링] */
+    [data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+        justify-content: flex-end !important;
+        margin-bottom: -10px !important;
+    }
+    [data-testid="stHorizontalBlock"] > div:last-child {
+        flex: 0 0 auto !important;
+        width: auto !important;
+    }
+    
+    /* Streamlit 버튼을 검색창 카메라 버튼과 동일한 둥근 원형으로 변환 */
+    div.stButton > button {
+        border-radius: 50% !important;
+        width: 42px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        padding: 0px !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dfe1e5 !important;
+        box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+    }
+    div.stButton > button:hover {
+        border-color: #41b2e7 !important;
+        box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
+        background-color: rgba(65, 178, 231, 0.05) !important;
+    }
+    div.stButton > button p {
+        font-size: 18px !important;
+        margin: 0 !important;
     }
 
     /* 로고 중앙 정렬 및 새로고침 인터랙션 */
@@ -44,7 +85,7 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         width: 100%;
-        margin-top: 10px;
+        margin-top: 5px;
         margin-bottom: 25px;
     }
     .logo-link {
@@ -83,14 +124,13 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 우측 상단 미니멀 테마 토글 버튼 배치 (세션 상태 활용)
+# 3. 우측 상단 미니멀 원형 테마 토글 버튼 배치
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
-# 상단 우측 정렬을 위한 그리드 구성
-col_space, col_toggle = st.columns([10, 1])
+# 빈 공간을 두어 우측 끝에 버튼이 안착되도록 정렬
+_, col_toggle = st.columns([12, 1])
 with col_toggle:
-    # 아이콘 버튼으로 라이트/다크모드 전환
     if st.session_state.theme_mode == "light":
         if st.button("🌙", help="다크 모드로 전환"):
             st.session_state.theme_mode = "dark"
