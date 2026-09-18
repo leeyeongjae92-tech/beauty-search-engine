@@ -51,6 +51,15 @@ st.markdown("""
         display: block;
     }
 
+    /* [디브 브랜드 감성 적용] 하단 구분선(hr) 색상을 #41b2e7 메인 컬러로 변경 */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        background-color: #41b2e7 !important;
+        margin-top: 25px !important;
+        margin-bottom: 25px !important;
+    }
+
     @media (max-width: 640px) {
         .logo-link img {
             width: 180px;
@@ -123,7 +132,6 @@ search_bar_html = """
     width: 100%;
     box-sizing: border-box;
   }
-  /* 마우스 오버 시 #41b2e7 메인 컬러가 부드럽게 퍼지는 그라데이션 글로우 효과 적용 */
   .search-container:hover, .search-container:focus-within {
     border-color: #41b2e7;
     box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 16px rgba(65, 178, 231, 0.3);
