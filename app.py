@@ -49,15 +49,14 @@ st.markdown("""
         display: block;
     }
 
-    /* [근본적인 해결] 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 강제 고정 */
+    /* 수평 블록(columns) 전체를 플렉스 컨테이너로 지정하고 수직 중앙 정렬 강제 고정 */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
 
-    /* 검색창 높이와 업로드 버튼의 높이를 일치시켜 완벽한 일직선상에 안착시킴 */
     div[data-testid="stHorizontalBlock"] > div:first-child {
         flex: 1 !important;
     }
@@ -65,12 +64,11 @@ st.markdown("""
         flex: 0 0 auto !important;
         display: flex !important;
         align-items: center !important;
-        padding-top: 0px !important;
     }
 
-    /* st.file_uploader 컴팩트한 원형 버튼 스타일링 (텍스트 'Upload' 제거 및 아이콘 중심 배치) */
+    /* [근본적인 해결] 파일 업로더 드롭존 박스와 안내 문구만 숨기고, 버튼 자체는 정상 노출 */
     [data-testid="stFileUploader"] {
-        width: 44px !important;
+        width: auto !important;
         margin: 0 !important;
     }
     [data-testid="stFileUploader"] section {
@@ -79,14 +77,16 @@ st.markdown("""
         background: transparent !important;
         min-height: unset !important;
     }
-    [data-testid="stFileUploader"] section > div {
+    /* 드롭존 내부의 안내 텍스트 영역만 타겟팅하여 숨김 */
+    [data-testid="stFileUploader"] section > div > div:not(:has(button)) {
         display: none !important;
     }
-    [data-testid="stFileUploader"] small, 
     [data-testid="stFileUploader"] label,
-    [data-testid="stFileUploader"] span {
+    [data-testid="stFileUploader"] small {
         display: none !important;
     }
+    
+    /* 업로드 버튼을 세련된 원형 버튼 스타일로 정돈 */
     [data-testid="stFileUploader"] button {
         border-radius: 50% !important;
         width: 44px !important;
@@ -153,7 +153,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 4. 네이티브 그리드로 텍스트 입력창과 업로드 버튼 배치
+# 4. 네이티브 그리드로 텍스트 입력창과 업로드 버튼 일직선 배치
 col_search, col_upload = st.columns([10, 1])
 
 with col_search:
@@ -166,7 +166,6 @@ st.markdown("---")
 
 # 5. 검색 및 비전 분석 처리 로직
 if uploaded_file is not None:
-    # --- [비전 RAG 분석 경로] ---
     image = Image.open(uploaded_file)
     st.image(image, width=280, caption="업로드된 실물 제품 사진")
     
@@ -223,7 +222,6 @@ if uploaded_file is not None:
             st.error(f"분석 중 오류가 발생했습니다: {e}")
 
 elif search_query:
-    # --- [텍스트 검색 처리 경로] ---
     query = search_query.strip()
     if not gemini_api_key:
         st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
