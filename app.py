@@ -3,32 +3,19 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 및 DIYV 구글 최신 검색바 테마 CSS 적용
+# 1. 페이지 설정 및 구글 최신 검색바 완벽 밀착형 CSS 적용
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
 st.markdown("""
 <style>
-    /* 구글 최신 메인 검색바 감성을 살린 알약형 인풋 스타일 */
-    .stTextInput input { 
-        border-radius: 32px !important; 
-        padding: 18px 24px 18px 24px !important; 
-        font-size: 16px !important; 
-        border: 1px solid rgba(128, 128, 128, 0.25) !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        transition: all 0.25s ease;
-    }
-    .stTextInput input:focus {
-        border-color: #1a73e8 !important;
-        box-shadow: 0 4px 14px rgba(26,115,232,0.12) !important;
-    }
-    
-    /* DIYV 브랜드 로고 스타일 (구글 컬러 레퍼런스 감성 조합) */
+    /* 구글 메인 로고 그라데이션 */
     .diyv-logo {
         text-align: center;
-        font-size: 48px;
+        font-size: 52px;
         font-weight: 800;
-        letter-spacing: -1.5px;
-        margin-bottom: 2px;
+        letter-spacing: -2px;
+        margin-top: 20px;
+        margin-bottom: 0px;
         background: linear-gradient(90deg, #4285F4 0%, #EA4335 35%, #FBBC05 70%, #34A853 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -37,7 +24,32 @@ st.markdown("""
         text-align: center;
         font-size: 14px;
         opacity: 0.65;
-        margin-bottom: 35px;
+        margin-bottom: 40px;
+    }
+
+    /* Streamlit 기본 텍스트 입력창을 구글 알약 바 스타일로 완벽 승화 */
+    .stTextInput > div > div > input {
+        border-radius: 35px !important;
+        padding: 18px 24px 18px 50px !important; /* 좌측에 아이콘 들어갈 공간 확보 */
+        font-size: 16px !important;
+        border: 1px solid rgba(128, 128, 128, 0.25) !important;
+        background-color: var(--secondary-background-color) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #4285F4 !important;
+        box-shadow: 0 4px 16px rgba(66,133,244,0.15) !important;
+    }
+
+    /* Streamlit 파일 업로더를 구글 렌즈/업로드 버튼 감성으로 정돈 */
+    [data-testid="stFileUploader"] {
+        width: 100%;
+    }
+    [data-testid="stFileUploader"] section {
+        padding: 10px !important;
+        border-radius: 20px !important;
+        border: 1px dashed rgba(128, 128, 128, 0.4) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -60,10 +72,10 @@ st.sidebar.markdown("<p style='font-size:12px; opacity:0.7;'>서버 시크릿 �
 st.markdown("<div class='diyv-logo'>DIYV</div>", unsafe_allow_html=True)
 st.markdown("<div class='diyv-subtitle'>실시간 가격 검색(RAG) ➔ 정밀 판매가 팩트 산정 엔진</div>", unsafe_allow_html=True)
 
-# 4. 검색창 및 파일 업로드 (구글 메인 레이아웃)
-col1, col2 = st.columns([5, 1], vertical_alignment="bottom")
+# 4. 구글 스타일 통합 검색 및 업로드 레이아웃
+col1, col2 = st.columns([4, 1], vertical_alignment="center")
 with col1:
-    search_query = st.text_input("검색어", placeholder="🔍 DIYV에 물어보기 (브랜드 또는 제품명 입력)", label_visibility="collapsed")
+    search_query = st.text_input("검색어", placeholder="브랜드 또는 제품명 검색 (예: MIFARSOUL)", label_visibility="collapsed")
 with col2:
     uploaded_file = st.file_uploader("사진", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
 
