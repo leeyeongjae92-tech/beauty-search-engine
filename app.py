@@ -3,31 +3,13 @@ from PIL import Image
 import google.generativeai as genai
 import requests
 
-# 1. 페이지 설정 (반응형 뷰포트 최적화)
+# 1. 페이지 설정 (레이아웃 표준 준수)
 st.set_page_config(page_title="DIYV - 뷰티 정밀 검색 엔진", page_icon="🔍", layout="centered")
 
+# 불필요한 DOM 조작 CSS를 모두 걷어내고 순수 반응형 기본기만 유지
 st.markdown("""
 <style>
-    /* 로고 이미지를 완벽한 물리적 정중앙으로 고정하는 플렉스 컨테이너 */
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        margin-top: 15px;
-        margin-bottom: 25px;
-    }
-    .logo-container img {
-        width: 240px;
-        max-width: 100%;
-        height: auto;
-    }
-
-    /* 모바일 환경 대응 입력창 조정 */
     @media (max-width: 640px) {
-        .logo-container img {
-            width: 180px;
-        }
         .stTextInput input {
             font-size: 14px !important;
             padding: 10px 14px !important;
@@ -40,24 +22,19 @@ st.markdown("""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 3. 플렉스 구조를 통한 완벽한 정중앙 로고 렌더링
-try:
-    logo_image = Image.open("logo.png")
-    # PIL 이미지를 HTML/CSS 렌더링에 안전하게 올리기 위해 임시 처리가 아닌 네이티브 마크다운 활용
-    st.image(logo_image, width=240, use_container_width=False)
-except Exception:
-    st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
+# 3. [근본적 해결] Streamlit 표준 3분할 컬럼을 이용한 완벽한 대칭 중앙 정렬
+# 좌우 여백 컬럼 비율을 1:1로 정확히 대칭을 이루게 설정합니다.
+col_left, col_center, col_right = st.columns([1, 1.2, 1])
 
-# Streamlit 네이티브 이미지 정렬을 확실히 잡기 위한 전용 스타일 주입
-st.markdown("""
-<style>
-    [data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
-    }
-</style>
-""", unsafe_allow_html=True)
+with col_center:
+    try:
+        logo_image = Image.open("logo.png")
+        # 중앙 컬럼 내부에 이미지를 배치하여 물리적으로 완벽한 센터 정렬 보장
+        st.image(logo_image, use_container_width=True)
+    except Exception:
+        st.markdown("<h1 style='text-align: center;'>diyv</h1>", unsafe_allow_html=True)
+
+st.write("") # 안정적인 수직 간격
 
 # 4. 안정적인 탭 인터페이스 (텍스트 검색 & 이미지 분석)
 tab1, tab2 = st.tabs(["🔍 텍스트 검색", "📸 제품 사진 분석 (비전 RAG)"])
