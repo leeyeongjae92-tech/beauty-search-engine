@@ -14,13 +14,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. 세션 상태 기반 테마 모드 관리 (즉각 반응형)
+# 2. 세션 상태 기반 테마 모드 관리
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 설정 (라이트모드 배경: #f8fafd / 다크모드 배경: #0F172A)
+# 테마별 색상 팔레트 (#41b2e7 브랜드 컬러 매핑)
 bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
 btn_bg = "#1E293B" if is_dark else "#ffffff"
@@ -43,10 +43,10 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입
+# 3. CSS 주입 (SVG 테마 토글 버튼 우측 상단 뷰포트 고정 및 레이아웃 정돈)
 app_css = """
 <style>
-    /* 전체 앱 배경 및 기본 텍스트 테마 적용 */
+    /* 전체 앱 배경 및 기본 텍스트 테마 */
     .stApp {
         background-color: __BG_COLOR__ !important;
         color: __TEXT_COLOR__ !important;
@@ -61,26 +61,15 @@ app_css = """
         display: none !important;
     }
 
-    /* 우측 상단 토글 버튼 행 정렬 */
-    [data-testid="stHorizontalBlock"] {
-        align-items: center !important;
-        justify-content: flex-end !important;
-        margin-bottom: -15px !important;
+    /* 우측 상단 고정 테마 토글 버튼 */
+    .theme-toggle-fixed {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 9999;
     }
-    [data-testid="stHorizontalBlock"] > div:last-child {
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-        flex: 0 0 auto !important;
-        width: auto !important;
-    }
-    
-    /* 최신 Streamlit 모든 버튼 선택자를 포괄하여 42px 완벽한 원형 강제 적용 */
-    div[data-testid="stHorizontalBlock"] button,
-    [data-testid="stButton"] button,
-    [data-testid="stBaseButton-secondary"],
-    [data-testid="baseButton-secondary"],
-    div.stButton button {
+
+    div[data-testid="stButton"] button {
         border-radius: 50% !important;
         width: 42px !important;
         height: 42px !important;
@@ -92,36 +81,25 @@ app_css = """
         padding: 0px !important;
         background-color: __BTN_BG__ !important;
         border: 1px solid __BTN_BORDER__ !important;
-        box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08) !important;
+        box-shadow: 0 1px 4px rgba(32, 33, 36, 0.08) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         transition: all 0.2s ease !important;
     }
-    div[data-testid="stHorizontalBlock"] button:hover,
-    [data-testid="stButton"] button:hover,
-    [data-testid="stBaseButton-secondary"]:hover,
-    [data-testid="baseButton-secondary"]:hover,
-    div.stButton button:hover {
+    div[data-testid="stButton"] button:hover {
         border-color: #41b2e7 !important;
         box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
         background-color: __ICON_HOVER_BG__ !important;
     }
-
-    /* 내부 이모지/텍스트 컨테이너 정중앙 센터 정렬 강제 */
-    div[data-testid="stHorizontalBlock"] button *,
-    [data-testid="stButton"] button *,
-    [data-testid="stBaseButton-secondary"] *,
-    [data-testid="baseButton-secondary"] *,
-    div.stButton button * {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1 !important;
-        font-size: 18px !important;
-        text-align: center !important;
+    div[data-testid="stButton"] button svg {
+        width: 20px;
+        height: 20px;
+        fill: __ICON_COLOR__;
+        transition: fill 0.2s ease;
+    }
+    div[data-testid="stButton"] button:hover svg {
+        fill: #41b2e7;
     }
 
     /* 로고 중앙 정렬 */
@@ -130,7 +108,7 @@ app_css = """
         justify-content: center;
         align-items: center;
         width: 100%;
-        margin-top: 15px;
+        margin-top: 40px;
         margin-bottom: 25px;
     }
     .logo-link {
@@ -148,18 +126,22 @@ app_css = """
         display: block;
     }
 
-    /* 하단 구분선(hr) 두께 1px, #41b2e7 메인 컬러 적용 */
+    /* 결과 출력 영역 상단 구분선 */
     hr {
         border: none !important;
         height: 1px !important;
         background-color: #41b2e7 !important;
-        margin-top: 25px !important;
-        margin-bottom: 25px !important;
+        margin-top: 30px !important;
+        margin-bottom: 30px !important;
     }
 
     @media (max-width: 640px) {
         .logo-link img {
             width: 140px;
+        }
+        .theme-toggle-fixed {
+            top: 16px;
+            right: 16px;
         }
     }
 </style>
@@ -167,6 +149,7 @@ app_css = """
    .replace("__TEXT_COLOR__", text_color)\
    .replace("__BTN_BG__", btn_bg)\
    .replace("__BTN_BORDER__", btn_border)\
+   .replace("__ICON_COLOR__", icon_color)\
    .replace("__ICON_HOVER_BG__", icon_hover_bg)
 
 st.markdown(app_css, unsafe_allow_html=True)
@@ -175,17 +158,29 @@ st.markdown(app_css, unsafe_allow_html=True)
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 5. 우측 상단 다크/라이트 테마 전환 버튼 (즉각 반응)
-_, col_toggle = st.columns([12, 1])
-with col_toggle:
-    if not is_dark:
-        if st.button("🌙", key="theme_toggle_btn", help="다크 모드로 전환"):
-            st.session_state.theme_mode = "dark"
-            st.rerun()
-    else:
-        if st.button("☀️", key="theme_toggle_btn", help="라이트 모드로 전환"):
-            st.session_state.theme_mode = "light"
-            st.rerun()
+# 5. 우측 상단 고정형 테마 토글 버튼 (SVG 선형 벡터 아이콘 적용)
+moon_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.7-5.07.75.75 0 0 0-.8-.99 8.5 8.5 0 0 1-7.7-13.14.75.75 0 0 0-.01-.8z"/></svg>"""
+sun_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1zm0 18a1 1 0 0 0-1 1v2a1 1 0 1 0 2 0v-2a1 1 0 0 0-1-1zm10-8h-2a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2zM4 12a1 1 0 0 0-1-1H1a1 1 0 1 0 0 2h2a1 1 0 0 0 1-1zm14.07-6.07a1 1 0 0 0-1.41 0l-1.42 1.41a1 1 0 0 0 1.42 1.42l1.41-1.42a1 1 0 0 0 0-1.41zM6.76 17.24a1 1 0 0 0-1.42 0l-1.41 1.42a1 1 0 0 0 1.41 1.41l1.42-1.41a1 1 0 0 0 0-1.42zm11.31 11.31a1 1 0 0 0 1.41-1.41l-1.41-1.42a1 1 0 1 0-1.42 1.42l1.42 1.41zM6.76 6.76a1 1 0 0 0 0-1.42L5.34 3.93a1 1 0 1 0-1.41 1.41l1.41 1.42a1 1 0 0 0 1.42 0z"/></svg>"""
+
+with st.container():
+    st.markdown('<div class="theme-toggle-fixed">', unsafe_allow_html=True)
+    toggle_icon = sun_svg if is_dark else moon_svg
+    help_text = "라이트 모드로 전환" if is_dark else "다크 모드로 전환"
+    
+    # HTML SVG 아이콘을 지원하는 커스텀 버튼
+    if st.button(" ", key="global_theme_toggle", help=help_text):
+        st.session_state.theme_mode = "light" if is_dark else "dark"
+        st.rerun()
+        
+    st.markdown(f"""
+    <script>
+        const btn = window.parent.document.querySelector('div[data-testid="stButton"] button');
+        if (btn && !btn.querySelector('svg')) {{
+            btn.innerHTML = `{toggle_icon}`;
+        }}
+    </script>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 6. 새로고침 로고 렌더링
 if img_box := img_base64:
@@ -201,7 +196,7 @@ if img_box := img_base64:
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align: center; color: {text_color};'>diyv</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 40px;'>diyv</h1>", unsafe_allow_html=True)
 
 st.write("")
 
@@ -222,7 +217,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. 검색바 컴포넌트 HTML
+# 7. 검색바 컴포넌트 HTML (플레이스홀더 고도화)
 search_bar_template = """
 <!DOCTYPE html>
 <html>
@@ -241,7 +236,7 @@ search_bar_template = """
     background: __SEARCH_BG__;
     border: 1px solid __SEARCH_BORDER__;
     border-radius: 28px;
-    padding: 8px 16px;
+    padding: 8px 18px;
     box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
@@ -263,6 +258,7 @@ search_bar_template = """
   }
   .search-input::placeholder {
     color: __PLACEHOLDER_COLOR__;
+    font-size: 15px;
   }
   .icon-btn {
     background: none;
@@ -284,7 +280,7 @@ search_bar_template = """
 </head>
 <body>
   <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="diyv에게 말하기" />
+    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" />
     <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
     <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
       <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
@@ -328,14 +324,13 @@ search_bar_html = search_bar_template\
 
 components.html(search_bar_html, height=90)
 
-st.markdown("---")
-
-# 8. 검색 및 비전 분석 처리 로직
+# 8. 검색 및 비전 분석 처리 로직 (결과가 있을 때만 구분선 조건부 출력)
 query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
 
 if img_base64_data:
+    st.markdown("---")
     try:
         header, encoded = img_base64_data.split(",", 1)
         image_bytes = base64.b64decode(encoded)
@@ -395,6 +390,7 @@ if img_base64_data:
         st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
 elif search_query:
+    st.markdown("---")
     query = search_query.strip()
     if not gemini_api_key:
         st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
