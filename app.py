@@ -5,6 +5,7 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 import requests
 import io
+import urllib.parse
 
 # 1. 페이지 설정
 st.set_page_config(
@@ -14,13 +15,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. 세션 상태 기반 테마 모드 관리
+# 2. 테마 상태 관리
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 팔레트
+# 테마별 색상 매핑 (#41b2e7 메인 컬러와 톤앤매너 완벽 일치)
 bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
 btn_bg = "#1E293B" if is_dark else "#ffffff"
@@ -43,7 +44,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (우측 상단 fixed 고정 + 완벽 원형 + 중앙 정렬)
+# 3. CSS 주입 (현재 UI 레이아웃 완벽 보존)
 app_css = """
 <style>
     .stApp {
@@ -59,7 +60,7 @@ app_css = """
         display: none !important;
     }
 
-    /* 우측 상단 토글 버튼 래퍼 - 화면 우측 상단에 고정 */
+    /* 우측 상단 고정 테마 버튼 래퍼 */
     div[data-testid="stButton"]:has(button[kind="secondary"]) {
         position: fixed !important;
         top: 24px !important;
@@ -127,7 +128,7 @@ app_css = """
         display: block;
     }
 
-    /* 하단 구분선 */
+    /* 결과 출력 영역 상단 구분선 (#41b2e7) */
     hr {
         border: none !important;
         height: 1px !important;
@@ -158,7 +159,7 @@ st.markdown(app_css, unsafe_allow_html=True)
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 5. 테마 토글 버튼 (네이티브 안정 렌더링 + fixed로 우측 상단 고정)
+# 5. 우측 상단 고정형 테마 토글 버튼
 toggle_icon = "☀️" if is_dark else "🌙"
 help_text = "라이트 모드로 전환" if is_dark else "다크 모드로 전환"
 
@@ -166,25 +167,23 @@ if st.button(toggle_icon, key="diyv_theme_toggle_btn", help=help_text):
     st.session_state.theme_mode = "light" if is_dark else "dark"
     st.rerun()
 
-# 6. 새로고침 로고 렌더링
+# 6. 새로고침 로고 렌더링 (클릭 시 쿼리 초기화)
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
-        <form action="" method="get">
-            <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
-                <div class="logo-link">
-                    <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
-                </div>
-            </button>
-        </form>
+        <a href="javascript:window.top.location.href=window.top.location.pathname;" style="text-decoration:none;">
+            <div class="logo-link">
+                <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
+            </div>
+        </a>
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'>diyv</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='javascript:window.top.location.href=window.top.location.pathname;' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
 
 st.write("")
 
-# 실시간 웹 검색 및 가격 추출 함수
+# 7. 실시간 Serper 검색 파이프라인
 def fetch_exact_price_and_product_info(query):
     snippets = []
     if serper_api_key:
@@ -192,7 +191,7 @@ def fetch_exact_price_and_product_info(query):
             url = "https://google.serper.dev/search"
             payload = {"q": f"{query} 공식몰 가격 원 올리브영", "gl": "kr", "hl": "ko"}
             headers = {"X-API-KEY": serper_api_key, "Content-Type": "application/json"}
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers, timeout=6)
             if response.status_code == 200:
                 data = response.json()
                 for item in data.get("organic", [])[:4]:
@@ -201,7 +200,12 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. 검색바 컴포넌트 HTML
+# 8. 현재 URL 쿼리 파라미터 읽기
+query_params = st.query_params
+search_query = query_params.get("q", "")
+img_base64_data = query_params.get("img_data", "")
+
+# 9. [비주얼 100% 보존] 검색바 컴포넌트 (표준 브라우저 네비게이션 트리거 장착)
 search_bar_template = """
 <!DOCTYPE html>
 <html>
@@ -264,9 +268,9 @@ search_bar_template = """
 </head>
 <body>
   <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" />
+    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" value="__CURRENT_VAL__" autocomplete="off" />
     <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
-    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
+    <button type="button" class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
       <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
         <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
       </svg>
@@ -275,20 +279,24 @@ search_bar_template = """
 
   <script>
     const input = document.getElementById('searchInput');
+
+    // 엔터 입력 시 최상위 윈도우 URL 변경 및 Streamlit 리런 보장
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && input.value.trim() !== '') {
         const query = encodeURIComponent(input.value.trim());
-        window.parent.location.search = '?q=' + query;
+        const targetUrl = window.top.location.pathname + '?q=' + query;
+        window.top.location.href = targetUrl;
       }
     });
 
+    // 이미지 선택 시 Base64 추출 후 부모 창에 파라미터 전달
     function handleFile(inputElement) {
       if (inputElement.files && inputElement.files[0]) {
         const file = inputElement.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
           const base64Data = encodeURIComponent(e.target.result);
-          window.parent.location.search = '?img_data=' + base64Data;
+          window.top.location.href = window.top.location.pathname + '?img_data=' + base64Data;
         };
         reader.readAsDataURL(file);
       }
@@ -304,87 +312,96 @@ search_bar_html = search_bar_template\
     .replace("__INPUT_COLOR__", input_color)\
     .replace("__PLACEHOLDER_COLOR__", placeholder_color)\
     .replace("__ICON_COLOR__", icon_color)\
-    .replace("__ICON_HOVER_BG__", icon_hover_bg)
+    .replace("__ICON_HOVER_BG__", icon_hover_bg)\
+    .replace("__CURRENT_VAL__", search_query)
 
 components.html(search_bar_html, height=90)
 
-# 8. 검색 및 비전 분석 처리 로직 (결과가 있을 때만 구분선 표시)
-query_params = st.query_params
-search_query = query_params.get("q", "")
-img_base64_data = query_params.get("img_data", "")
-
+# 10. 백엔드 AI 팩트체크 분석 로직 (결과가 있을 때만 구분선과 함께 출력)
 if img_base64_data:
     st.markdown("---")
     try:
-        header, encoded = img_base64_data.split(",", 1)
+        # Base64 디코딩
+        raw_data = urllib.parse.unquote(img_base64_data)
+        header, encoded = raw_data.split(",", 1)
         image_bytes = base64.b64decode(encoded)
         image = Image.open(io.BytesIO(image_bytes))
         
         st.image(image, width=280, caption="업로드된 실물 제품 사진")
         
         if not gemini_api_key:
-            st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+            st.error("⚠️ GEMINI_API_KEY가 Streamlit Secrets에 설정되지 않았습니다.")
         else:
-            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
+            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 제품명을 스캔 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
-                model_name = 'gemini-3.6-flash'
-                model = genai.GenerativeModel(model_name)
-                
-                extract_prompt = "이 화장품 사진에 적힌 브랜드 정식 명칭과 제품명을 정확하게 한 줄로 요약해줘."
-                extract_response = model.generate_content([image, extract_prompt])
-                identified_product_name = extract_response.text.strip()
-                
-            with st.spinner(f"🌐 [diyv] '{identified_product_name}'의 공식몰 및 실거래 가격 데이터 실시간 조회 중..."):
-                web_snippets = fetch_exact_price_and_product_info(identified_product_name)
-                grounding_text = "\n".join(web_snippets) if web_snippets else "추가 웹 검색 결과 없음"
+                model = genai.GenerativeModel('gemini-3.6-flash')
+                extract_res = model.generate_content([image, "이 화장품 사진에 적힌 정식 브랜드명과 제품명을 한 줄로 요약해줘."])
+                identified_name = extract_res.text.strip()
 
-            with st.spinner("✨ [diyv] 공식 판매가 및 객관적 팩트 매트릭스 합성 중..."):
-                final_prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가입니다. 
-                제공된 이미지와 실시간 웹 검색 데이터(Grounding Context)를 조합하여 이 제품을 정밀 분석해주세요.
+            with st.spinner(f"🌐 [diyv] '{identified_name}' 공식몰 가격 및 실거래가 조회 중..."):
+                snippets = fetch_exact_price_and_product_info(identified_name)
+                grounding = "\n".join(snippets) if snippets else "추가 웹 검색 결과 없음"
 
-                [실시간 웹 검색 참고 데이터 (가격 정보 포함)]
-                {grounding_text}
+            with st.spinner("✨ [diyv] 팩트 매트릭스 리포트 생성 중..."):
+                prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다.
+                제공된 이미지와 실시간 검색 데이터를 종합해 객관적인 팩트 매트릭스를 작성하세요.
+                
+                [실시간 검색 데이터]:
+                {grounding}
 
-                [필수 작성 지침]
-                1. 가격 항목에는 절대 '중저가', '고가' 같은 뭉뚱그린 표현을 쓰지 마세요.
-                2. 웹 검색 데이터나 공식몰 기준의 **정확한 판매 가격**을 명시해주세요.
-                3. 마케팅 노이즈를 배제하고 오직 팩트 위주로 작성하세요.
+                - **브랜드 및 제품명**: [명칭]
+                - **카테고리**: [스킨케어/메이크업 등]
+                - **공식 판매가 및 가격대**: [정확한 가격 명시]
+                - **핵심 유효 성분 및 제형**: [성분 분석]
+                - **장점 및 가성비 평가**: [객관적 지표]
+                - **주의 사항 및 권장 피부 타입**: [주의 성분 및 타겟]"""
+                
+                res = model.generate_content([image, prompt])
+                st.markdown("### 📋 diyv 공식 뷰티 팩트 분석 리포트")
+                st.write(res.text)
 
-                반드시 아래 항목에 맞춰 한국어로 정확히 답변해주세요:
-                - 브랜드명: [정식 브랜드명]
-                - 제품명: [제품명]
-                - 카테고리: [skincare 또는 makeup]
-                - 브랜드철학: [객관적 설명]
-                - **공식 판매가**: [정확한 원화 가격 명시]
-                - 타겟: [주요 타겟층]
-                - 핵심스펙: [성분 및 제형 스펙]
-                - 가성비 및 안전도: [용량, 단위당 가성비 및 안전 특징]"""
-                
-                final_response = model.generate_content([image, final_prompt])
-                
-                st.markdown(f"### 📋 diyv 공식 가격 기반 뷰티 팩트 분석 리포트")
-                st.write(final_response.text)
-                
-                if web_snippets:
-                    with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
-                        for s in web_snippets:
+                if snippets:
+                    with st.expander("🔍 실시간 가격 및 웹 검색 출처"):
+                        for s in snippets:
                             st.info(s)
-                            
+
     except Exception as e:
-        st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
+        st.error(f"이미지 분석 중 오류가 발생했습니다: {e}")
 
 elif search_query:
     st.markdown("---")
-    query = search_query.strip()
+    query = urllib.parse.unquote(search_query).strip()
+    
     if not gemini_api_key:
-        st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+        st.error("⚠️ GEMINI_API_KEY가 Streamlit Secrets에 설정되지 않았습니다.")
     else:
-        with st.spinner(f"'{query}' 실시간 가격 분석 중..."):
-            web_snippets = fetch_exact_price_and_product_info(query)
+        with st.spinner(f"🌐 [diyv] '{query}' 실시간 데이터 및 가격 조회 중..."):
+            snippets = fetch_exact_price_and_product_info(query)
+            grounding = "\n".join(snippets) if snippets else "추가 웹 검색 결과 없음"
             genai.configure(api_key=gemini_api_key)
-        
-        st.success(f"✨ 검색 완료: **[{query}]**")
-        st.markdown(f"### {query}")
-        st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 diyv 스탠다드")
-        st.markdown("#### 🏆 diyv 객관적 팩트 매트릭스 (Fact Matrix)")
-        st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
+            model = genai.GenerativeModel('gemini-3.6-flash')
+
+        with st.spinner("✨ [diyv] AI 팩트 매트릭스 리포트 생성 중..."):
+            prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다.
+            사용자 검색어와 실시간 웹 데이터를 바탕으로 마케팅 수식어를 배제하고 핵심 팩트 위주로 작성하세요.
+
+            [검색어]: {query}
+            [실시간 검색 데이터]:
+            {grounding}
+
+            - **브랜드 및 제품명**: [명칭]
+            - **카테고리**: [스킨케어/메이크업 등]
+            - **공식 판매가 및 가격대**: [정확한 원화 가격]
+            - **핵심 유효 성분 및 제형**: [성분 분석]
+            - **장점 및 가성비 평가**: [객관적 지표]
+            - **주의 사항 및 권장 피부 타입**: [주의 성분 및 타겟]"""
+
+            res = model.generate_content(prompt)
+            st.success(f"✨ 분석 완료: **[{query}]**")
+            st.markdown("### 📋 diyv 뷰티 팩트체크 리포트")
+            st.write(res.text)
+
+            if snippets:
+                with st.expander("🔍 실시간 가격 및 웹 검색 출처"):
+                    for s in snippets:
+                        st.info(s)
