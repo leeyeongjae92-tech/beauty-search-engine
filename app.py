@@ -1,11 +1,9 @@
 import streamlit as st
 import base64
 from PIL import Image
-import streamlit.components.v1 as components
 import google.generativeai as genai
 import requests
 import io
-import urllib.parse
 
 # 1. 페이지 설정
 st.set_page_config(
@@ -15,185 +13,270 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. 세션 상태 기반 테마 모드 관리
+# 2. 세션 상태 관리
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
+if "show_cam" not in st.session_state:
+    st.session_state.show_cam = False
+
+if "confirmed_query" not in st.session_state:
+    st.session_state.confirmed_query = ""
+
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 팔레트 (#41b2e7 브랜드 컬러)
+# 테마별 색상 설정 (#41b2e7 브랜드 매핑)
 bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
-btn_bg = "#1E293B" if is_dark else "#ffffff"
-btn_border = "#334155" if is_dark else "#dfe1e5"
-search_bg = "#1E293B" if is_dark else "#ffffff"
-search_border = "#334155" if is_dark else "#dfe1e5"
-input_color = "#F8FAFC" if is_dark else "#202124"
+card_bg = "#1E293B" if is_dark else "#ffffff"
+card_border = "#334155" if is_dark else "#dfe1e5"
+input_text = "#F8FAFC" if is_dark else "#202124"
 placeholder_color = "#94A3B8" if is_dark else "#70757a"
 icon_color = "#94A3B8" if is_dark else "#5f6368"
-icon_hover_bg = "rgba(65, 178, 231, 0.2)" if is_dark else "rgba(65, 178, 231, 0.1)"
+hover_glow = "rgba(65, 178, 231, 0.18)"
+hover_shadow = "rgba(65, 178, 231, 0.3)"
 
 # 로고 Base64 인코딩
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
+            return base64.b64encode(f.read()).decode()
     except Exception:
         return ""
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (오리지널 레이아웃 완벽 복원)
-app_css = """
+# 3. CSS 주입 (오리지널 비주얼 100% 보존 + 네이티브 인풋 직결)
+app_css = f"""
 <style>
-    .stApp {
-        background-color: __BG_COLOR__ !important;
-        color: __TEXT_COLOR__ !important;
-    }
+    /* 전체 배경 */
+    .stApp {{
+        background-color: {bg_color} !important;
+        color: {text_color} !important;
+    }}
 
-    #MainMenu {visibility: hidden !important;}
-    header {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    
-    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
+    #MainMenu, header, footer {{
+        visibility: hidden !important;
         display: none !important;
-    }
+    }}
+
+    /* [고정] 우측 상단 테마 토글 버튼 - 최상단 고정 및 완전한 원형 */
+    .top-right-theme-area {{
+        position: fixed !important;
+        top: 24px !important;
+        right: 28px !important;
+        z-index: 999999 !important;
+    }}
+    .top-right-theme-area button {{
+        border-radius: 50% !important;
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
+        min-height: 42px !important;
+        max-height: 42px !important;
+        padding: 0 !important;
+        background-color: {card_bg} !important;
+        border: 1px solid {card_border} !important;
+        box-shadow: 0 1px 4px rgba(32, 33, 36, 0.08) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }}
+    .top-right-theme-area button:hover {{
+        border-color: #41b2e7 !important;
+        box-shadow: 0 0 0 3px {hover_glow}, 0 2px 8px {hover_shadow} !important;
+    }}
+    .top-right-theme-area button p {{
+        font-size: 18px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }}
 
     /* 로고 중앙 정렬 */
-    .logo-wrapper {
+    .logo-wrapper {{
         display: flex;
         justify-content: center;
         align-items: center;
         width: 100%;
         margin-top: 50px;
         margin-bottom: 25px;
-    }
-    .logo-link {
+    }}
+    .logo-link {{
         cursor: pointer;
         display: inline-block;
         transition: transform 0.2s ease;
-    }
-    .logo-link:hover {
+    }}
+    .logo-link:hover {{
         transform: scale(1.02);
-    }
-    .logo-link img {
+    }}
+    .logo-link img {{
         width: 180px;
         max-width: 100%;
         height: auto;
         display: block;
-    }
+    }}
+
+    /* [핵심] 검색바 전체 래퍼: 완벽한 알약(Pill) 외형 */
+    .search-wrapper-pill {{
+        max-width: 720px;
+        margin: 0 auto;
+        position: relative;
+        background: {card_bg};
+        border: 1px solid {card_border};
+        border-radius: 28px;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        padding-right: 12px;
+    }}
+    .search-wrapper-pill:hover, .search-wrapper-pill:focus-within {{
+        border-color: #41b2e7;
+        box-shadow: 0 0 0 3px {hover_glow}, 0 4px 16px {hover_shadow};
+    }}
+
+    /* 텍스트 인풋 스타일: 내부 회색 박스/테두리를 제거하여 알약 테두리와 일체화 */
+    .search-wrapper-pill div[data-testid="stTextInput"] {{
+        flex: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+    .search-wrapper-pill div[data-testid="stTextInput"] > div {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }}
+    .search-wrapper-pill div[data-testid="stTextInput"] > div > div {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }}
+    .search-wrapper-pill div[data-testid="stTextInput"] input {{
+        color: {input_text} !important;
+        background: transparent !important;
+        border: none !important;
+        font-size: 16px !important;
+        padding-left: 20px !important;
+        padding-right: 10px !important;
+        height: 46px !important;
+        caret-color: #41b2e7 !important;
+    }}
+    .search-wrapper-pill div[data-testid="stTextInput"] input::placeholder {{
+        color: {placeholder_color} !important;
+        font-size: 15px !important;
+    }}
+
+    /* 검색창 내부 카메라 버튼: 사각 테두리 없이 아이콘만 정돈 */
+    .cam-btn-inner button {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        color: {icon_color} !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }}
+    .cam-btn-inner button:hover {{
+        background-color: {hover_glow} !important;
+        color: #41b2e7 !important;
+    }}
 
     /* 하단 구분선 */
-    hr {
+    hr {{
         border: none !important;
         height: 1px !important;
         background-color: #41b2e7 !important;
-        margin-top: 30px !important;
-        margin-bottom: 30px !important;
-    }
+        margin-top: 35px !important;
+        margin-bottom: 35px !important;
+    }}
 
-    @media (max-width: 640px) {
-        .logo-link img {
-            width: 140px;
-        }
-    }
+    @media (max-width: 640px) {{
+        .top-right-theme-area {{ top: 16px !important; right: 16px !important; }}
+        .logo-link img {{ width: 140px; }}
+    }}
 </style>
-""".replace("__BG_COLOR__", bg_color)\
-   .replace("__TEXT_COLOR__", text_color)
-
+"""
 st.markdown(app_css, unsafe_allow_html=True)
 
-# 4. 백엔드 시크릿에서 API 키 로드
+# 4. API 키 로드
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 5. 우측 상단 완벽한 원형 테마 토글 버튼 컴포넌트 (오리지널 컴포넌트 HTML)
-toggle_btn_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body {{
-    margin: 0;
-    padding: 10px 4px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    background: transparent;
-    box-sizing: border-box;
-  }}
-  .theme-btn {{
-    background: {'#1E293B' if is_dark else '#ffffff'};
-    border: 1px solid {'#334155' if is_dark else '#dfe1e5'};
-    border-radius: 50% !important;
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08);
-    transition: all 0.2s ease;
-    outline: none;
-    font-size: 18px;
-    padding: 0;
-    margin: 0;
-    line-height: 1;
-  }}
-  .theme-btn:hover {{
-    border-color: #41b2e7;
-    box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 12px rgba(65, 178, 231, 0.3);
-    background-color: rgba(65, 178, 231, 0.05);
-  }}
-</style>
-</head>
-<body>
-  <button class="theme-btn" onclick="toggleTheme()" title="테마 변경">
-    {'☀️' if is_dark else '🌙'}
-  </button>
+# 5. 우측 상단 테마 토글 버튼 (독립 컨테이너 고정)
+st.markdown('<div class="top-right-theme-area">', unsafe_allow_html=True)
+toggle_label = "☀️" if is_dark else "🌙"
+if st.button(toggle_label, key="native_theme_btn", help="테마 전환"):
+    st.session_state.theme_mode = "light" if is_dark else "dark"
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
-  <script>
-    function toggleTheme() {{
-      const current = "{st.session_state.theme_mode}";
-      const next = current === "light" ? "dark" : "light";
-      try {{
-        window.top.location.search = '?theme=' + next;
-      }} catch (e) {{
-        window.parent.location.search = '?theme=' + next;
-      }}
-    }}
-  </script>
-</body>
-</html>
-"""
-
-components.html(toggle_btn_html, height=65)
-
-# 테마 파라미터가 URL에 있을 경우 세션 갱신
-query_params = st.query_params
-if "theme" in query_params:
-    st.session_state.theme_mode = query_params.get("theme", "light")
-
-# 6. 새로고침 로고 렌더링
-if img_box := img_base64:
+# 6. 새로고침 로고
+if img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
-        <a href="/" target="_top" style="text-decoration:none;">
+        <a href="/" target="_self" style="text-decoration:none;">
             <div class="logo-link">
-                <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
+                <img src="data:image/png;base64,{img_base64}" alt="diyv Logo">
             </div>
         </a>
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='/' target='_top' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='/' target='_self' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
 
 st.write("")
 
-# 실시간 웹 검색 및 가격 추출 함수
+# 7. 검색 콜백 함수 (Enter 입력 시 세션으로 검색어 전달)
+def on_search_enter():
+    val = st.session_state.get("search_native_input", "").strip()
+    if val:
+        st.session_state.confirmed_query = val
+
+# [정석 Pill 검색바] 인풋과 카메라 버튼이 하나의 알약 컨테이너 안에 깔끔하게 배치
+st.markdown('<div class="search-wrapper-pill">', unsafe_allow_html=True)
+search_col_input, search_col_cam = st.columns([12, 1])
+
+with search_col_input:
+    st.text_input(
+        label="검색창",
+        placeholder="화장품 이름, 성분, 가격 물어보기",
+        label_visibility="collapsed",
+        key="search_native_input",
+        on_change=on_search_enter
+    )
+
+with search_col_cam:
+    st.markdown('<div class="cam-btn-inner">', unsafe_allow_html=True)
+    if st.button("📷", key="cam_toggle_action", help="사진으로 화장품 검색"):
+        st.session_state.show_cam = not st.session_state.show_cam
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# 카메라 토글 시 나타나는 파일 업로더
+uploaded_image = None
+if st.session_state.show_cam:
+    st.write("")
+    uploaded_image = st.file_uploader(
+        "분석할 화장품 사진을 선택하세요", 
+        type=["jpg", "jpeg", "png", "webp"],
+        label_visibility="collapsed"
+    )
+
+# Serper 웹 검색 함수
 def fetch_exact_price_and_product_info(query):
     snippets = []
     if serper_api_key:
@@ -201,163 +284,36 @@ def fetch_exact_price_and_product_info(query):
             url = "https://google.serper.dev/search"
             payload = {"q": f"{query} 공식몰 가격 원 올리브영", "gl": "kr", "hl": "ko"}
             headers = {"X-API-KEY": serper_api_key, "Content-Type": "application/json"}
-            response = requests.post(url, json=payload, headers=headers, timeout=6)
-            if response.status_code == 200:
-                data = response.json()
-                for item in data.get("organic", [])[:4]:
+            res = requests.post(url, json=payload, headers=headers, timeout=6)
+            if res.status_code == 200:
+                for item in res.json().get("organic", [])[:4]:
                     snippets.append(item.get("snippet", ""))
         except Exception:
             pass
     return snippets
 
-# 7. 오리지널 검색바 컴포넌트 HTML (UI 100% 동일 복원)
-search_query = query_params.get("q", "")
-img_base64_data = query_params.get("img_data", "")
-current_display_val = urllib.parse.unquote(search_query) if search_query else ""
-
-search_bar_template = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body {
-    margin: 0;
-    padding: 12px 14px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: transparent;
-    box-sizing: border-box;
-  }
-  .search-container {
-    display: flex;
-    align-items: center;
-    background: __SEARCH_BG__;
-    border: 1px solid __SEARCH_BORDER__;
-    border-radius: 28px;
-    padding: 8px 18px;
-    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .search-container:hover, .search-container:focus-within {
-    border-color: #41b2e7;
-    box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 16px rgba(65, 178, 231, 0.3);
-  }
-  .search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 16px;
-    background: transparent;
-    color: __INPUT_COLOR__;
-    padding: 0 10px;
-    height: 32px;
-  }
-  .search-input::placeholder {
-    color: __PLACEHOLDER_COLOR__;
-    font-size: 15px;
-  }
-  .icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    color: __ICON_COLOR__;
-    transition: background 0.2s, color 0.2s;
-  }
-  .icon-btn:hover {
-    background-color: __ICON_HOVER_BG__;
-    color: #41b2e7;
-  }
-</style>
-</head>
-<body>
-  <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" value="__CURRENT_VAL__" autocomplete="off" />
-    <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
-    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
-      <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
-        <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
-      </svg>
-    </button>
-  </div>
-
-  <script>
-    const input = document.getElementById('searchInput');
-
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && input.value.trim() !== '') {
-        const query = encodeURIComponent(input.value.trim());
-        const targetUrl = window.top.location.pathname + '?q=' + query;
-        try {
-          window.top.location.href = targetUrl;
-        } catch (err) {
-          window.parent.location.search = '?q=' + query;
-        }
-      }
-    });
-
-    function handleFile(inputElement) {
-      if (inputElement.files && inputElement.files[0]) {
-        const file = inputElement.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const base64Data = encodeURIComponent(e.target.result);
-          try {
-            window.top.location.href = window.top.location.pathname + '?img_data=' + base64Data;
-          } catch(err) {
-            window.parent.location.search = '?img_data=' + base64Data;
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  </script>
-</body>
-</html>
-"""
-
-search_bar_html = search_bar_template\
-    .replace("__SEARCH_BG__", search_bg)\
-    .replace("__SEARCH_BORDER__", search_border)\
-    .replace("__INPUT_COLOR__", input_color)\
-    .replace("__PLACEHOLDER_COLOR__", placeholder_color)\
-    .replace("__ICON_COLOR__", icon_color)\
-    .replace("__ICON_HOVER_BG__", icon_hover_bg)\
-    .replace("__CURRENT_VAL__", current_display_val)
-
-components.html(search_bar_html, height=90)
-
-# 8. 백엔드 AI 팩트체크 분석 로직 (결과가 있을 때만 구분선 노출)
-if img_base64_data:
+# 8. 백엔드 AI 팩트체크 파이프라인 (gemini-2.5-flash 표준 연동)
+if uploaded_image:
     st.markdown("---")
     try:
-        raw_data = urllib.parse.unquote(img_base64_data)
-        header, encoded = raw_data.split(",", 1)
-        image_bytes = base64.b64decode(encoded)
-        image = Image.open(io.BytesIO(image_bytes))
-        
-        st.image(image, width=280, caption="업로드된 실물 제품 사진")
+        image = Image.open(uploaded_image)
+        st.image(image, width=280, caption="스캔된 실물 제품 사진")
         
         if not gemini_api_key:
-            st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+            st.error("⚠️ Streamlit Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
         else:
             with st.spinner("🤖 [diyv] 비전 AI가 제품명을 식별 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
                 model = genai.GenerativeModel('gemini-2.5-flash')
-                extract_prompt = "이 화장품 사진에 적힌 정식 브랜드명과 제품명을 한 줄로 요약해줘."
+                extract_prompt = "이 화장품 사진에 적힌 브랜드 정식 명칭과 제품명을 정확하게 한 줄로 요약해줘."
                 extract_res = model.generate_content([image, extract_prompt])
                 identified_name = extract_res.text.strip()
 
-            with st.spinner(f"🌐 [diyv] '{identified_name}' 공식몰 가격 및 실거래가 조회 중..."):
+            with st.spinner(f"🌐 [diyv] '{identified_name}' 공식몰 및 실거래 가격 데이터 조회 중..."):
                 snippets = fetch_exact_price_and_product_info(identified_name)
                 grounding = "\n".join(snippets) if snippets else "추가 웹 검색 결과 없음"
 
-            with st.spinner("✨ [diyv] 팩트 매트릭스 리포트 생성 중..."):
+            with st.spinner("✨ [diyv] 공식 판매가 및 객관적 팩트 매트릭스 합성 중..."):
                 prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다.
                 제공된 이미지와 실시간 검색 데이터를 종합해 객관적인 팩트 매트릭스를 작성하세요.
                 
@@ -383,14 +339,14 @@ if img_base64_data:
     except Exception as e:
         st.error(f"이미지 분석 중 오류가 발생했습니다: {e}")
 
-elif search_query:
+elif st.session_state.confirmed_query:
     st.markdown("---")
-    query = urllib.parse.unquote(search_query).strip()
+    query = st.session_state.confirmed_query
     
     if not gemini_api_key:
-        st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
+        st.error("⚠️ Streamlit Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
     else:
-        with st.spinner(f"🌐 [diyv] '{query}' 실시간 데이터 및 가격 조회 중..."):
+        with st.spinner(f"🌐 [diyv] '{query}' 실시간 가격 데이터 및 웹 정보 검색 중..."):
             snippets = fetch_exact_price_and_product_info(query)
             grounding = "\n".join(snippets) if snippets else "추가 웹 검색 결과 없음"
             genai.configure(api_key=gemini_api_key)
