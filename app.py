@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. 테마 모드 및 상태 관리
+# 2. 세션 상태 관리
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "light"
 
@@ -25,7 +25,7 @@ if "confirmed_query" not in st.session_state:
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 매핑
+# 테마 색상 팔레트
 bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
 card_bg = "#1E293B" if is_dark else "#ffffff"
@@ -46,7 +46,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (글씨/커서 미표시 수정, 우측상단 테마 버튼 분리, 검색바 일체화)
+# 3. CSS 주입 (원래 정상이었던 우측 상단 고정 + 28px Pill 검색바 100% 동일 복원)
 app_css = f"""
 <style>
     /* 전체 배경 */
@@ -60,18 +60,21 @@ app_css = f"""
         display: none !important;
     }}
 
-    /* [해결 1] 우측 상단 테마 버튼 전용 고정 (다른 버튼과 섞이지 않음) */
-    .top-theme-wrapper {{
-        position: fixed;
-        top: 24px;
-        right: 28px;
-        z-index: 999999;
+    /* [원복] 우측 상단 테마 버튼 위치 및 완전한 원형 고정 */
+    .top-right-theme-area {{
+        position: fixed !important;
+        top: 24px !important;
+        right: 28px !important;
+        z-index: 999999 !important;
     }}
-    .top-theme-wrapper div[data-testid="stButton"] button {{
+    .top-right-theme-area button {{
         border-radius: 50% !important;
         width: 42px !important;
         height: 42px !important;
         min-width: 42px !important;
+        max-width: 42px !important;
+        min-height: 42px !important;
+        max-height: 42px !important;
         padding: 0 !important;
         background-color: {card_bg} !important;
         border: 1px solid {card_border} !important;
@@ -80,54 +83,66 @@ app_css = f"""
         align-items: center !important;
         justify-content: center !important;
         transition: all 0.2s ease !important;
+        cursor: pointer !important;
     }}
-    .top-theme-wrapper div[data-testid="stButton"] button:hover {{
+    .top-right-theme-area button:hover {{
         border-color: #41b2e7 !important;
         box-shadow: 0 0 0 3px {hover_glow}, 0 2px 8px {hover_shadow} !important;
     }}
-    .top-theme-wrapper div[data-testid="stButton"] button p {{
+    .top-right-theme-area button p {{
         font-size: 18px !important;
         margin: 0 !important;
         line-height: 1 !important;
     }}
 
     /* 로고 중앙 정렬 */
-    .logo-box {{
+    .logo-wrapper {{
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-top: 55px;
+        width: 100%;
+        margin-top: 50px;
         margin-bottom: 25px;
     }}
-    .logo-box img {{
+    .logo-link {{
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }}
+    .logo-link:hover {{
+        transform: scale(1.02);
+    }}
+    .logo-link img {{
         width: 180px;
         max-width: 100%;
         height: auto;
+        display: block;
     }}
 
-    /* [해결 2] 검색바 단일 Pill 컨테이너 (인풋 + 카메라 버튼이 하나로 묶임) */
-    div[data-testid="stHorizontalBlock"]:has(input[data-testid="baseButton-input"], div[data-testid="stTextInput"]) {{
-        background: {card_bg} !important;
-        border: 1px solid {card_border} !important;
-        border-radius: 28px !important;
-        padding: 4px 12px 4px 18px !important;
-        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        align-items: center !important;
-        max-width: 720px !important;
-        margin: 0 auto !important;
+    /* [원복] 일체형 Pill 검색 컨테이너 */
+    .search-box-pill {{
+        max-width: 720px;
+        margin: 0 auto;
+        background: {card_bg};
+        border: 1px solid {card_border};
+        border-radius: 28px;
+        padding: 6px 16px 6px 20px;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        position: relative;
     }}
-    div[data-testid="stHorizontalBlock"]:has(input[data-testid="baseButton-input"], div[data-testid="stTextInput"]):hover,
-    div[data-testid="stHorizontalBlock"]:has(input[data-testid="baseButton-input"], div[data-testid="stTextInput"]):focus-within {{
-        border-color: #41b2e7 !important;
-        box-shadow: 0 0 0 3px {hover_glow}, 0 4px 16px {hover_shadow} !important;
+    .search-box-pill:hover, .search-box-pill:focus-within {{
+        border-color: #41b2e7;
+        box-shadow: 0 0 0 3px {hover_glow}, 0 4px 16px {hover_shadow};
     }}
 
-    /* [해결 3] 글씨와 커서가 투명/회색 박스에 가려지지 않도록 배경 완전 초기화 및 caret 색상 지정 */
+    /* 텍스트 인풋 스타일: 배경/테두리 투명화로 깔끔하게 통합 */
     div[data-testid="stTextInput"] {{
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        width: 100% !important;
     }}
     div[data-testid="stTextInput"] > div {{
         background: transparent !important;
@@ -147,33 +162,38 @@ app_css = f"""
         border: none !important;
         font-size: 16px !important;
         padding: 0 !important;
-        height: 40px !important;
-        caret-color: #41b2e7 !important; /* 디브 메인 컬러 깜빡이는 커서 */
+        height: 38px !important;
+        caret-color: #41b2e7 !important;
     }}
     div[data-testid="stTextInput"] input::placeholder {{
         color: {placeholder_color} !important;
         font-size: 15px !important;
     }}
 
-    /* 검색바 내부 카메라 버튼 스타일 */
-    .cam-col-btn div[data-testid="stButton"] button {{
+    /* [원복] 검색창 내부 카메라 버튼: 사각 박스 제거 및 순수 아이콘화 */
+    .inline-cam-btn {{
+        margin-left: 8px;
+    }}
+    .inline-cam-btn button {{
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         width: 36px !important;
         height: 36px !important;
         min-height: 36px !important;
+        padding: 0 !important;
         border-radius: 50% !important;
         color: {icon_color} !important;
-        padding: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         transition: all 0.2s ease !important;
+        cursor: pointer !important;
     }}
-    .cam-col-btn div[data-testid="stButton"] button:hover {{
+    .inline-cam-btn button:hover {{
         background-color: {hover_glow} !important;
         color: #41b2e7 !important;
+        border: none !important;
     }}
 
     /* 하단 구분선 */
@@ -181,62 +201,66 @@ app_css = f"""
         border: none !important;
         height: 1px !important;
         background-color: #41b2e7 !important;
-        margin: 35px 0 !important;
+        margin-top: 35px !important;
+        margin-bottom: 35px !important;
     }}
 
     @media (max-width: 640px) {{
-        .top-theme-wrapper {{ top: 16px; right: 16px; }}
-        .logo-box img {{ width: 140px; }}
+        .top-right-theme-area {{ top: 16px !important; right: 16px !important; }}
+        .logo-link img {{ width: 140px; }}
     }}
 </style>
 """
 st.markdown(app_css, unsafe_allow_html=True)
 
-# 4. API 키 로드
+# 4. 백엔드 시크릿에서 API 키 로드
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 5. 우측 상단 테마 토글 버튼 (전용 컨테이너에 격리)
-st.markdown('<div class="top-theme-wrapper">', unsafe_allow_html=True)
+# 5. [원복] 우측 상단 고정 원형 테마 토글
+st.markdown('<div class="top-right-theme-area">', unsafe_allow_html=True)
 toggle_label = "☀️" if is_dark else "🌙"
-if st.button(toggle_label, key="global_theme_toggle_btn", help="테마 전환"):
+if st.button(toggle_label, key="main_theme_btn", help="테마 전환"):
     st.session_state.theme_mode = "light" if is_dark else "dark"
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# 6. 새로고침 로고 렌더링
-if img_base64:
+# 6. 새로고침 로고
+if img_box := img_base64:
     st.markdown(f"""
-    <div class="logo-box">
-        <a href="/" target="_self">
-            <img src="data:image/png;base64,{img_base64}" alt="diyv">
+    <div class="logo-wrapper">
+        <a href="/" target="_self" style="text-decoration:none;">
+            <div class="logo-link">
+                <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
+            </div>
         </a>
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align:center; color:{text_color}; margin-top:55px;'><a href='/' target='_self' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='/' target='_self' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
 
-# 7. 엔터 입력 시 검색어 세션 저장 콜백
-def on_enter_pressed():
-    val = st.session_state.get("search_input_widget", "").strip()
+st.write("")
+
+# 7. 검색 콜백 함수 (Enter 입력 시 동작)
+def trigger_search():
+    val = st.session_state.get("search_bar_input", "").strip()
     if val:
         st.session_state.confirmed_query = val
 
-# 검색바 (Pill 컨테이너 내부에 인풋과 카메라 버튼 배치)
-col_input, col_cam = st.columns([12, 1])
-
-with col_input:
+# 검색창 영역 (Pill 박스 안에 인풋과 카메라 아이콘이 정돈되어 들어감)
+search_cols = st.columns([11, 1])
+with search_cols[0]:
     st.text_input(
         label="검색창",
         placeholder="화장품 이름, 성분, 가격 물어보기",
         label_visibility="collapsed",
-        key="search_input_widget",
-        on_change=on_enter_pressed
+        key="search_bar_input",
+        on_change=trigger_search
     )
 
-with col_cam:
-    st.markdown('<div class="cam-col-btn">', unsafe_allow_html=True)
-    if st.button("📷", key="search_bar_cam_btn", help="화장품 사진으로 검색"):
+with search_cols[1]:
+    st.markdown('<div class="inline-cam-btn">', unsafe_allow_html=True)
+    if st.button("📷", key="search_cam_trigger", help="제품 사진으로 검색"):
         st.session_state.show_cam = not st.session_state.show_cam
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -267,7 +291,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 8. 백엔드 AI 팩트체크 엔진 (Gemini 1.5 Flash로 안정화)
+# 8. 백엔드 AI 팩트체크 파이프라인 (gemini-2.5-flash 표준 적용)
 if uploaded_image:
     st.markdown("---")
     try:
@@ -277,9 +301,9 @@ if uploaded_image:
         if not gemini_api_key:
             st.error("⚠️ Streamlit Secrets에 GEMINI_API_KEY가 설정되지 않았습니다.")
         else:
-            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 제품명을 스캔 중입니다..."):
+            with st.spinner("🤖 [diyv] 비전 AI가 제품명을 식별 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 extract_prompt = "이 화장품 사진에 적힌 브랜드 정식 명칭과 제품명을 정확하게 한 줄로 요약해줘."
                 extract_res = model.generate_content([image, extract_prompt])
                 identified_name = extract_res.text.strip()
@@ -307,12 +331,12 @@ if uploaded_image:
                 st.write(res.text)
 
                 if snippets:
-                    with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
+                    with st.expander("🔍 실시간 가격 및 웹 검색 출처"):
                         for s in snippets:
                             st.info(s)
 
     except Exception as e:
-        st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
+        st.error(f"이미지 분석 중 오류가 발생했습니다: {e}")
 
 elif st.session_state.confirmed_query:
     st.markdown("---")
@@ -325,7 +349,7 @@ elif st.session_state.confirmed_query:
             snippets = fetch_exact_price_and_product_info(query)
             grounding = "\n".join(snippets) if snippets else "추가 웹 검색 결과 없음"
             genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
 
         with st.spinner("✨ [diyv] AI 팩트 매트릭스 리포트 생성 중..."):
             prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다.
