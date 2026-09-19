@@ -6,28 +6,31 @@ import google.generativeai as genai
 import requests
 import io
 
-# 1. 세션 상태 기반 테마 관리 (최우선 반영)
-if "theme_mode" not in st.session_state:
-    st.session_state.theme_mode = "light"
-
-# 테마별 컬러셋 정의
-is_dark = st.session_state.theme_mode == "dark"
-
-bg_color = "#121212" if is_dark else "#ffffff"
-text_color = "#e0e0e0" if is_dark else "#202124"
-search_bg = "#1e1e1e" if is_dark else "#ffffff"
-search_border = "#3c4043" if is_dark else "#dfe1e5"
-input_text_color = "#ffffff" if is_dark else "#202124"
-icon_btn_color = "#9aa0a6" if is_dark else "#5f6368"
-icon_btn_hover_bg = "rgba(65, 178, 231, 0.2)" if is_dark else "rgba(65, 178, 231, 0.1)"
-
-# 2. 페이지 설정
+# 1. 페이지 설정
 st.set_page_config(
     page_title="diyv - 뷰티 정밀 검색 엔진", 
     page_icon="🔍", 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+
+# 2. 세션 상태 기반 테마 모드 관리 (즉각 반응형)
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "light"
+
+is_dark = (st.session_state.theme_mode == "dark")
+
+# 테마별 색상 설정
+bg_color = "#121212" if is_dark else "#ffffff"
+text_color = "#e0e0e0" if is_dark else "#202124"
+btn_bg = "#1e1e1e" if is_dark else "#ffffff"
+btn_border = "#3c4043" if is_dark else "#dfe1e5"
+search_bg = "#1e1e1e" if is_dark else "#ffffff"
+search_border = "#3c4043" if is_dark else "#dfe1e5"
+input_color = "#ffffff" if is_dark else "#202124"
+placeholder_color = "#9aa0a6" if is_dark else "#70757a"
+icon_color = "#9aa0a6" if is_dark else "#5f6368"
+icon_hover_bg = "rgba(65, 178, 231, 0.2)" if is_dark else "rgba(65, 178, 231, 0.1)"
 
 # 로고 이미지 Base64 인코딩 함수
 def get_base64_image(image_path):
@@ -40,103 +43,116 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. 전체 스타일 정의 (f-string 에러 원인 제거 및 완벽한 CSS 정돈)
-st.markdown(f"""
+# 3. CSS 주입 (f-string 문법 에러를 원천 차단하기 위해 .replace 사용)
+app_css = """
 <style>
-    .stApp {{
-        background-color: {bg_color} !important;
-        color: {text_color} !important;
-    }}
-    #MainMenu {{visibility: hidden !important;}}
-    header {{visibility: hidden !important;}}
-    footer {{visibility: hidden !important;}}
-    
-    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {{
-        display: none !important;
-    }}
+    /* 전체 앱 배경 및 기본 텍스트 테마 적용 */
+    .stApp {
+        background-color: __BG_COLOR__ !important;
+        color: __TEXT_COLOR__ !important;
+    }
 
-    [data-testid="stHorizontalBlock"] {{
+    /* 기본 Streamlit 헤더, 메뉴, 푸터 완전 숨김 */
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    
+    [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
+        display: none !important;
+    }
+
+    /* 우측 상단 토글 버튼 행 정렬 */
+    [data-testid="stHorizontalBlock"] {
         align-items: center !important;
         justify-content: flex-end !important;
         margin-bottom: -15px !important;
-    }}
-    [data-testid="stHorizontalBlock"] > div:last-child {{
+    }
+    [data-testid="stHorizontalBlock"] > div:last-child {
         flex: 0 0 auto !important;
         width: auto !important;
-    }}
+    }
     
-    div.stButton > button {{
+    /* 원형 테마 토글 버튼 스타일링 */
+    div.stButton > button {
         border-radius: 50% !important;
         width: 42px !important;
         height: 42px !important;
         min-height: 42px !important;
         padding: 0px !important;
-        background-color: {'#1e1e1e' if is_dark else '#ffffff'} !important;
-        border: 1px solid {'#3c4043' if is_dark else '#dfe1e5'} !important;
+        background-color: __BTN_BG__ !important;
+        border: 1px solid __BTN_BORDER__ !important;
         box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         transition: all 0.2s ease !important;
-    }}
-    div.stButton > button:hover {{
+    }
+    div.stButton > button:hover {
         border-color: #41b2e7 !important;
         box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
-        background-color: {'rgba(65, 178, 231, 0.15)' if is_dark else 'rgba(65, 178, 231, 0.05)'} !important;
-    }}
-    div.stButton > button p {{
+        background-color: __ICON_HOVER_BG__ !important;
+    }
+    div.stButton > button p {
         font-size: 18px !important;
         margin: 0 !important;
         line-height: 1 !important;
-    }}
+    }
 
-    .logo-wrapper {{
+    /* 로고 중앙 정렬 */
+    .logo-wrapper {
         display: flex;
         justify-content: center;
         align-items: center;
         width: 100%;
         margin-top: 15px;
         margin-bottom: 25px;
-    }}
-    .logo-link {{
+    }
+    .logo-link {
         cursor: pointer;
         display: inline-block;
         transition: transform 0.2s ease;
-    }}
-    .logo-link:hover {{
+    }
+    .logo-link:hover {
         transform: scale(1.02);
-    }}
-    .logo-link img {{
+    }
+    .logo-link img {
         width: 180px;
         max-width: 100%;
         height: auto;
         display: block;
-    }}
+    }
 
-    hr {{
+    /* 하단 구분선(hr) 두께 1px, #41b2e7 메인 컬러 적용 */
+    hr {
         border: none !important;
         height: 1px !important;
         background-color: #41b2e7 !important;
         margin-top: 25px !important;
         margin-bottom: 25px !important;
-    }}
+    }
 
-    @media (max-width: 640px) {{
-        .logo-link img {{
+    @media (max-width: 640px) {
+        .logo-link img {
             width: 140px;
-        }}
-    }}
+        }
+    }
 </style>
-""", unsafe_allow_html=True)
+""".replace("__BG_COLOR__", bg_color)\
+   .replace("__TEXT_COLOR__", text_color)\
+   .replace("__BTN_BG__", btn_bg)\
+   .replace("__BTN_BORDER__", btn_border)\
+   .replace("__ICON_HOVER_BG__", icon_hover_bg)
 
-# 4. 백엔드 시크릿에서 API 키 자동 로드 (보안 유지)
+st.markdown(app_css, unsafe_allow_html=True)
+
+# 4. 백엔드 시크릿에서 API 키 로드
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 5. 우측 상단 네이티브 원형 테마 토글 버튼 배치 (즉각 반응형)
+# 5. 우측 상단 다크/라이트 테마 전환 버튼 (즉각 반응)
 _, col_toggle = st.columns([12, 1])
 with col_toggle:
-    if st.session_state.theme_mode == "light":
+    if not is_dark:
         if st.button("🌙", help="다크 모드로 전환"):
             st.session_state.theme_mode = "dark"
             st.rerun()
@@ -145,7 +161,7 @@ with col_toggle:
             st.session_state.theme_mode = "light"
             st.rerun()
 
-# 6. 새로고침이 되는 커스텀 로고 렌더링
+# 6. 새로고침 로고 렌더링
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
@@ -161,7 +177,7 @@ if img_box := img_base64:
 else:
     st.markdown(f"<h1 style='text-align: center; color: {text_color};'>diyv</h1>", unsafe_allow_html=True)
 
-st.write("") # 수직 간격
+st.write("")
 
 # 실시간 웹 검색 및 가격 추출 함수
 def fetch_exact_price_and_product_info(query):
@@ -180,49 +196,49 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바 (다크모드 대응)
-search_bar_html = f"""
+# 7. 검색바 컴포넌트 HTML (f-string 대신 안전한 .replace 방식으로 변수 주입)
+search_bar_template = """
 <!DOCTYPE html>
 <html>
 <head>
 <style>
-  body {{
+  body {
     margin: 0;
     padding: 12px 14px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: transparent;
     box-sizing: border-box;
-  }}
-  .search-container {{
+  }
+  .search-container {
     display: flex;
     align-items: center;
-    background: {search_bg};
-    border: 1px solid {search_border};
+    background: __SEARCH_BG__;
+    border: 1px solid __SEARCH_BORDER__;
     border-radius: 28px;
     padding: 8px 16px;
     box-shadow: 0 1px 6px rgba(32, 33, 36, 0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     box-sizing: border-box;
-  }}
-  .search-container:hover, .search-container:focus-within {{
+  }
+  .search-container:hover, .search-container:focus-within {
     border-color: #41b2e7;
     box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 16px rgba(65, 178, 231, 0.3);
-  }}
-  .search-input {{
+  }
+  .search-input {
     flex: 1;
     border: none;
     outline: none;
     font-size: 16px;
     background: transparent;
-    color: {input_text_color};
+    color: __INPUT_COLOR__;
     padding: 0 10px;
     height: 32px;
-  }}
-  .search-input::placeholder {{
-    color: {'#9aa0a6' if is_dark else '#70757a'};
-  }}
-  .icon-btn {{
+  }
+  .search-input::placeholder {
+    color: __PLACEHOLDER_COLOR__;
+  }
+  .icon-btn {
     background: none;
     border: none;
     cursor: pointer;
@@ -231,13 +247,13 @@ search_bar_html = f"""
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    color: {icon_btn_color};
+    color: __ICON_COLOR__;
     transition: background 0.2s, color 0.2s;
-  }}
-  .icon-btn:hover {{
-    background-color: {icon_btn_hover_bg};
+  }
+  .icon-btn:hover {
+    background-color: __ICON_HOVER_BG__;
     color: #41b2e7;
-  }}
+  }
 </style>
 </head>
 <body>
@@ -253,34 +269,42 @@ search_bar_html = f"""
 
   <script>
     const input = document.getElementById('searchInput');
-    input.addEventListener('keydown', function(e) {{
-      if (e.key === 'Enter' && input.value.trim() !== '') {{
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && input.value.trim() !== '') {
         const query = encodeURIComponent(input.value.trim());
         window.parent.location.search = '?q=' + query;
       }
-    }});
+    });
 
-    function handleFile(inputElement) {{
-      if (inputElement.files && inputElement.files[0]) {{
+    function handleFile(inputElement) {
+      if (inputElement.files && inputElement.files[0]) {
         const file = inputElement.files[0];
         const reader = new FileReader();
-        reader.onload = function(e) {{
+        reader.onload = function(e) {
           const base64Data = encodeURIComponent(e.target.result);
           window.parent.location.search = '?img_data=' + base64Data;
         };
         reader.readAsDataURL(file);
       }
-    }}
+    }
   </script>
 </body>
 </html>
 """
 
+search_bar_html = search_bar_template\
+    .replace("__SEARCH_BG__", search_bg)\
+    .replace("__SEARCH_BORDER__", search_border)\
+    .replace("__INPUT_COLOR__", input_color)\
+    .replace("__PLACEHOLDER_COLOR__", placeholder_color)\
+    .replace("__ICON_COLOR__", icon_color)\
+    .replace("__ICON_HOVER_BG__", icon_hover_bg)
+
 components.html(search_bar_html, height=90)
 
 st.markdown("---")
 
-# 8. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
+# 8. 검색 및 비전 분석 처리 로직
 query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
@@ -356,5 +380,5 @@ elif search_query:
         st.success(f"✨ 검색 완료: **[{query}]**")
         st.markdown(f"### {query}")
         st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 diyv 스탠다드")
-        st.markdown(f"#### 🏆 diyv 객관적 팩트 매트릭스 (Fact Matrix)")
+        st.markdown("#### 🏆 diyv 객관적 팩트 매트릭스 (Fact Matrix)")
         st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
