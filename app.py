@@ -6,11 +6,9 @@ import google.generativeai as genai
 import requests
 import io
 
-# 1. 세션 상태 기반 테마 관리 (초기값 'light')
+# 1. 세션 상태 기반 테마 관리 (최우선 반영)
 if "theme_mode" not in st.session_state:
-    # URL 파라미터에 theme이 있으면 우선 반영
-    query_params = st.query_params
-    st.session_state.theme_mode = query_params.get("theme", "light")
+    st.session_state.theme_mode = "light"
 
 # 테마별 컬러셋 정의
 is_dark = st.session_state.theme_mode == "dark"
@@ -42,10 +40,10 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] 다크모드/라이트모드 전체 배경 및 UI 스타일 동적 적용
+# [근본적인 해결] 전체 배경 및 네이티브 버튼을 검색창 카메라 아이콘과 동일한 완벽한 원형으로 스타일링
 st.markdown(f"""
 <style>
-    /* Streamlit 전체 배경 및 기본 텍스트 컬러 동적 변경 */
+    /* Streamlit 전체 배경 및 텍스트 색상 적용 */
     .stApp {{
         background-color: {bg_color} !important;
         color: {text_color} !important;
@@ -59,6 +57,43 @@ st.markdown(f"""
     /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {{
         display: none !important;
+    }}
+
+    /* 우측 상단 토글 버튼 영역 정렬 */
+    [data-testid="stHorizontalBlock"] {{
+        align-items: center !important;
+        justify-content: flex-end !important;
+        margin-bottom: -15px !important;
+    }}
+    [data-testid="stHorizontalBlock"] > div:last-child {{
+        flex: 0 0 auto !important;
+        width: auto !important;
+    }}
+    
+    /* [근본적 해결] 네이티브 버튼을 검색창 카메라 버튼과 똑같은 42px 완벽한 원형 곡률로 강제 고정 */
+    div.stButton > button {{
+        border-radius: 50% !important;
+        width: 42px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        padding: 0px !important;
+        background-color: {'#1e1e1e' if is_dark else '#ffffff'} !important;
+        border: 1px solid {'#3c4043' if is_dark else '#dfe1e5'} !important;
+        box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+    }}
+    div.stButton > button:hover {{
+        border-color: #41b2e7 !important;
+        box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
+        background-color: {'rgba(65, 178, 231, 0.15)' if is_dark else 'rgba(65, 178, 231, 0.05)'} !important;
+    }}
+    div.stButton > button p {{
+        font-size: 18px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
     }}
 
     /* 로고 중앙 정렬 및 새로고침 인터랙션 */
@@ -106,72 +141,23 @@ st.markdown(f"""
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 4. 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS (클릭 시 세션 상태 및 쿼리 파라미터 즉시 토글)
-toggle_btn_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body {{
-    margin: 0;
-    padding: 10px 4px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    background: transparent;
-    box-sizing: border-box;
-  }}
-  .theme-btn {{
-    background: {'#1e1e1e' if is_dark else '#ffffff'};
-    border: 1px solid {'#3c4043' if is_dark else '#dfe1e5'};
-    border-radius: 50% !important;
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 3px rgba(32, 33, 36, 0.08);
-    transition: all 0.2s ease;
-    outline: none;
-    font-size: 18px;
-    padding: 0;
-    margin: 0;
-    line-height: 1;
-  }}
-  .theme-btn:hover {{
-    border-color: #41b2e7;
-    box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 4px 12px rgba(65, 178, 231, 0.3);
-    background-color: rgba(65, 178, 231, 0.1);
-  }}
-</style>
-</head>
-<body>
-  <button class="theme-btn" onclick="toggleTheme()" title="테마 변경">
-    {'☀️' if is_dark else '🌙'}
-  </button>
-
-  <script>
-    function toggleTheme() {{
-      const current = "{st.session_state.theme_mode}";
-      const next = current === "light" ? "dark" : "light";
-      window.parent.location.search = '?theme=' + next;
-    }}
-  </script>
-</body>
-</html>
-"""
-
-components.html(toggle_btn_html, height=65)
+# 4. 우측 상단 네이티브 원형 테마 토글 버튼 배치 (즉각 반응형)
+_, col_toggle = st.columns([12, 1])
+with col_toggle:
+    if st.session_state.theme_mode == "light":
+        if st.button("🌙", help="다크 모드로 전환"):
+            st.session_state.theme_mode = "dark"
+            st.rerun()
+    else:
+        if st.button("☀️", help="라이트 모드로 전환"):
+            st.session_state.theme_mode = "light"
+            st.rerun()
 
 # 5. 새로고침이 되는 커스텀 로고 렌더링
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
         <form action="" method="get">
-            <input type="hidden" name="theme" value="{st.session_state.theme_mode}">
             <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
                 <div class="logo-link">
                     <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
@@ -202,7 +188,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 6. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바 (다크모드 대응)
+# 6. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바 (다크모드 완벽 대응)
 search_bar_html = f"""
 <!DOCTYPE html>
 <html>
@@ -278,9 +264,9 @@ search_bar_html = f"""
     input.addEventListener('keydown', function(e) {{
       if (e.key === 'Enter' && input.value.trim() !== '') {{
         const query = encodeURIComponent(input.value.trim());
-        window.parent.location.search = '?q=' + query + '&theme={st.session_state.theme_mode}';
-      }}
-    }});
+        window.parent.location.search = '?q=' + query;
+      }
+    });
 
     function handleFile(inputElement) {{
       if (inputElement.files && inputElement.files[0]) {{
@@ -288,10 +274,10 @@ search_bar_html = f"""
         const reader = new FileReader();
         reader.onload = function(e) {{
           const base64Data = encodeURIComponent(e.target.result);
-          window.parent.location.search = '?img_data=' + base64Data + '&theme={st.session_state.theme_mode}';
-        }};
+          window.parent.location.search = '?img_data=' + base64Data;
+        };
         reader.readAsDataURL(file);
-      }}
+      }
     }}
   </script>
 </body>
@@ -303,6 +289,7 @@ components.html(search_bar_html, height=90)
 st.markdown("---")
 
 # 7. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
+query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
 
