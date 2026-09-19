@@ -20,16 +20,16 @@ if "theme_mode" not in st.session_state:
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 설정
-bg_color = "#121212" if is_dark else "#ffffff"
-text_color = "#e0e0e0" if is_dark else "#202124"
-btn_bg = "#1e1e1e" if is_dark else "#ffffff"
-btn_border = "#3c4043" if is_dark else "#dfe1e5"
-search_bg = "#1e1e1e" if is_dark else "#ffffff"
-search_border = "#3c4043" if is_dark else "#dfe1e5"
-input_color = "#ffffff" if is_dark else "#202124"
-placeholder_color = "#9aa0a6" if is_dark else "#70757a"
-icon_color = "#9aa0a6" if is_dark else "#5f6368"
+# 테마별 색상 설정 (#0F172A 기반 팔레트)
+bg_color = "#0F172A" if is_dark else "#ffffff"
+text_color = "#F1F5F9" if is_dark else "#202124"
+btn_bg = "#1E293B" if is_dark else "#ffffff"
+btn_border = "#334155" if is_dark else "#dfe1e5"
+search_bg = "#1E293B" if is_dark else "#ffffff"
+search_border = "#334155" if is_dark else "#dfe1e5"
+input_color = "#F8FAFC" if is_dark else "#202124"
+placeholder_color = "#94A3B8" if is_dark else "#70757a"
+icon_color = "#94A3B8" if is_dark else "#5f6368"
 icon_hover_bg = "rgba(65, 178, 231, 0.2)" if is_dark else "rgba(65, 178, 231, 0.1)"
 
 # 로고 이미지 Base64 인코딩 함수
@@ -43,7 +43,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (최신 Streamlit DOM 구조 전체 대응 원형 스타일 강제 적용)
+# 3. CSS 주입 (다크모드 #0F172A 적용 및 원형 토글 버튼 스타일링)
 app_css = """
 <style>
     /* 전체 앱 배경 및 기본 텍스트 테마 적용 */
@@ -75,7 +75,7 @@ app_css = """
         width: auto !important;
     }
     
-    /* [근본적 해결] 최신 Streamlit 모든 버튼 선택자를 포괄하여 42px 완벽한 원형 강제 적용 */
+    /* 최신 Streamlit 모든 버튼 선택자를 포괄하여 42px 완벽한 원형 강제 적용 */
     div[data-testid="stHorizontalBlock"] button,
     [data-testid="stButton"] button,
     [data-testid="stBaseButton-secondary"],
