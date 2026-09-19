@@ -5,6 +5,7 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 import requests
 import io
+import urllib.parse
 
 # 1. 페이지 설정
 st.set_page_config(
@@ -166,21 +167,19 @@ if st.button(toggle_icon, key="diyv_theme_toggle_btn", help=help_text):
     st.session_state.theme_mode = "light" if is_dark else "dark"
     st.rerun()
 
-# 6. 새로고침 로고 렌더링
+# 6. 새로고침 로고 렌더링 (클릭 시 홈으로 깨끗하게 이동)
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
-        <form action="" method="get">
-            <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;" title="새로고침">
-                <div class="logo-link">
-                    <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
-                </div>
-            </button>
-        </form>
+        <a href="javascript:window.top.location.href=window.top.location.pathname;" style="text-decoration:none;">
+            <div class="logo-link">
+                <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
+            </div>
+        </a>
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'>diyv</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='javascript:window.top.location.href=window.top.location.pathname;' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
 
 st.write("")
 
@@ -192,7 +191,7 @@ def fetch_exact_price_and_product_info(query):
             url = "https://google.serper.dev/search"
             payload = {"q": f"{query} 공식몰 가격 원 올리브영", "gl": "kr", "hl": "ko"}
             headers = {"X-API-KEY": serper_api_key, "Content-Type": "application/json"}
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers, timeout=6)
             if response.status_code == 200:
                 data = response.json()
                 for item in data.get("organic", [])[:4]:
@@ -201,7 +200,11 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. 검색바 컴포넌트 HTML
+# 7. 검색바 컴포넌트 HTML (디자인 100% 동일 유지 + window.top 네비게이션 보강)
+query_params = st.query_params
+raw_query = query_params.get("q", "")
+current_display_val = urllib.parse.unquote(raw_query) if raw_query else ""
+
 search_bar_template = """
 <!DOCTYPE html>
 <html>
@@ -264,7 +267,7 @@ search_bar_template = """
 </head>
 <body>
   <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" />
+    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" value="__CURRENT_VAL__" autocomplete="off" />
     <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
     <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
       <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
@@ -275,20 +278,31 @@ search_bar_template = """
 
   <script>
     const input = document.getElementById('searchInput');
+
+    // Enter 키 입력 시 안정적인 최상위 브라우저 네비게이션 트리거
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && input.value.trim() !== '') {
         const query = encodeURIComponent(input.value.trim());
-        window.parent.location.search = '?q=' + query;
+        try {
+          window.top.location.href = window.top.location.pathname + '?q=' + query;
+        } catch(err) {
+          window.parent.location.search = '?q=' + query;
+        }
       }
     });
 
+    // 이미지 파일 업로드 시 Base64 변환 후 파라미터 전달
     function handleFile(inputElement) {
       if (inputElement.files && inputElement.files[0]) {
         const file = inputElement.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
           const base64Data = encodeURIComponent(e.target.result);
-          window.parent.location.search = '?img_data=' + base64Data;
+          try {
+            window.top.location.href = window.top.location.pathname + '?img_data=' + base64Data;
+          } catch(err) {
+            window.parent.location.search = '?img_data=' + base64Data;
+          }
         };
         reader.readAsDataURL(file);
       }
@@ -304,19 +318,21 @@ search_bar_html = search_bar_template\
     .replace("__INPUT_COLOR__", input_color)\
     .replace("__PLACEHOLDER_COLOR__", placeholder_color)\
     .replace("__ICON_COLOR__", icon_color)\
-    .replace("__ICON_HOVER_BG__", icon_hover_bg)
+    .replace("__ICON_HOVER_BG__", icon_hover_bg)\
+    .replace("__CURRENT_VAL__", current_display_val)
 
 components.html(search_bar_html, height=90)
 
-# 8. 검색 및 비전 분석 처리 로직 (결과가 있을 때만 구분선 표시)
-query_params = st.query_params
-search_query = query_params.get("q", "")
+# 8. 검색 및 비전 분석 처리 로직
 img_base64_data = query_params.get("img_data", "")
+search_query = query_params.get("q", "")
 
+# (1) 이미지 기반 검색 분석
 if img_base64_data:
     st.markdown("---")
     try:
-        header, encoded = img_base64_data.split(",", 1)
+        raw_data = urllib.parse.unquote(img_base64_data)
+        header, encoded = raw_data.split(",", 1)
         image_bytes = base64.b64decode(encoded)
         image = Image.open(io.BytesIO(image_bytes))
         
@@ -325,21 +341,20 @@ if img_base64_data:
         if not gemini_api_key:
             st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
         else:
-            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 정확한 제품명을 스캔 중입니다..."):
+            with st.spinner("🤖 [diyv] 비전 AI가 패키지에서 브랜드와 제품명을 스캔 중입니다..."):
                 genai.configure(api_key=gemini_api_key)
-                model_name = 'gemini-3.6-flash'
-                model = genai.GenerativeModel(model_name)
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 extract_prompt = "이 화장품 사진에 적힌 브랜드 정식 명칭과 제품명을 정확하게 한 줄로 요약해줘."
                 extract_response = model.generate_content([image, extract_prompt])
                 identified_product_name = extract_response.text.strip()
                 
-            with st.spinner(f"🌐 [diyv] '{identified_product_name}'의 공식몰 및 실거래 가격 데이터 실시간 조회 중..."):
+            with st.spinner(f"🌐 [diyv] '{identified_product_name}' 공식몰 및 실거래 가격 데이터 조회 중..."):
                 web_snippets = fetch_exact_price_and_product_info(identified_product_name)
                 grounding_text = "\n".join(web_snippets) if web_snippets else "추가 웹 검색 결과 없음"
 
             with st.spinner("✨ [diyv] 공식 판매가 및 객관적 팩트 매트릭스 합성 중..."):
-                final_prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가입니다. 
+                final_prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다. 
                 제공된 이미지와 실시간 웹 검색 데이터(Grounding Context)를 조합하여 이 제품을 정밀 분석해주세요.
 
                 [실시간 웹 검색 참고 데이터 (가격 정보 포함)]
@@ -351,14 +366,12 @@ if img_base64_data:
                 3. 마케팅 노이즈를 배제하고 오직 팩트 위주로 작성하세요.
 
                 반드시 아래 항목에 맞춰 한국어로 정확히 답변해주세요:
-                - 브랜드명: [정식 브랜드명]
-                - 제품명: [제품명]
-                - 카테고리: [skincare 또는 makeup]
-                - 브랜드철학: [객관적 설명]
+                - **브랜드 및 제품명**: [정식 브랜드명 및 제품명]
+                - **카테고리**: [skincare 또는 makeup]
                 - **공식 판매가**: [정확한 원화 가격 명시]
-                - 타겟: [주요 타겟층]
-                - 핵심스펙: [성분 및 제형 스펙]
-                - 가성비 및 안전도: [용량, 단위당 가성비 및 안전 특징]"""
+                - **타겟 피부 타입**: [주요 타겟층]
+                - **핵심 유효 성분 및 제형**: [성분 및 제형 스펙]
+                - **가성비 및 안전도 평가**: [용량당 가성비 및 안전성 특징]"""
                 
                 final_response = model.generate_content([image, final_prompt])
                 
@@ -373,18 +386,47 @@ if img_base64_data:
     except Exception as e:
         st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
+# (2) 텍스트 기반 정밀 검색 분석 (실제 Gemini 엔진 연동 완료)
 elif search_query:
     st.markdown("---")
-    query = search_query.strip()
+    query = urllib.parse.unquote(search_query).strip()
+    
     if not gemini_api_key:
         st.error("⚠️ 서버에 Gemini API 키가 설정되어 있지 않습니다. Streamlit Secrets 설정을 확인해주세요.")
     else:
-        with st.spinner(f"'{query}' 실시간 가격 분석 중..."):
+        with st.spinner(f"🌐 [diyv] '{query}' 실시간 가격 데이터 및 웹 정보 검색 중..."):
             web_snippets = fetch_exact_price_and_product_info(query)
+            grounding_text = "\n".join(web_snippets) if web_snippets else "추가 웹 검색 결과 없음"
             genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
         
-        st.success(f"✨ 검색 완료: **[{query}]**")
-        st.markdown(f"### {query}")
-        st.info(f"**브랜드 철학:** 마케팅 노이즈를 배제하고 투명한 원료 공개와 객관적 지표만을 제공하는 diyv 스탠다드")
-        st.markdown("#### 🏆 diyv 객관적 팩트 매트릭스 (Fact Matrix)")
-        st.write(f"**📦 분석된 제품:** {query} 스탠다드 라인\n\n💧 **핵심 스펙:** 고순도 활성 성분 베이스\n\n📊 **단위당 가성비:** 표준 용량 기준 가격 산정 완료\n\n🚫 **안전도:** EWG 그린 스탠다드 충족")
+        with st.spinner("✨ [diyv] AI 팩트 매트릭스 리포트 생성 중..."):
+            text_prompt = f"""당신은 객관적이고 투명한 글로벌 뷰티 데이터 분석가 diyv(디브)입니다.
+            사용자가 입력한 검색어와 실시간 웹 검색 데이터를 바탕으로 객관적인 팩트 매트릭스를 생성해주세요.
+
+            [사용자 검색어]: {query}
+            [실시간 웹 검색 참고 데이터 (가격 정보 포함)]:
+            {grounding_text}
+
+            [필수 작성 지침]
+            1. 공식 판매가 또는 최근 유통 실거래가를 가능한 원화 기준으로 명확히 밝혀주세요.
+            2. 마케팅성 수식어를 지양하고 성분, 기능, 가성비 위주로 핵심을 짚어주세요.
+
+            반드시 아래 포맷에 맞춰 한국어로 답변해주세요:
+            - **브랜드 및 제품명**: [명칭]
+            - **카테고리**: [스킨케어/메이크업 등]
+            - **공식 판매가 및 가격대**: [정확한 가격]
+            - **핵심 유효 성분 및 제형**: [성분 분석]
+            - **장점 및 가성비 평가**: [객관적 지표]
+            - **주의 사항 및 권장 피부 타입**: [주의 성분 및 타겟]"""
+
+            response = model.generate_content(text_prompt)
+
+            st.success(f"✨ 검색 완료: **[{query}]**")
+            st.markdown(f"### 📋 diyv 뷰티 팩트체크 리포트")
+            st.write(response.text)
+
+            if web_snippets:
+                with st.expander("🔍 실시간 가격 및 웹 검색 참고 문서 확인"):
+                    for s in web_snippets:
+                        st.info(s)
