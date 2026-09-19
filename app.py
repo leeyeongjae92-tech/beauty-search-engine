@@ -40,26 +40,21 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# [근본적인 해결] 전체 배경 및 네이티브 버튼을 검색창 카메라 아이콘과 동일한 완벽한 원형으로 스타일링
+# 3. 전체 스타일 정의 (f-string 에러 원인 제거 및 완벽한 CSS 정돈)
 st.markdown(f"""
 <style>
-    /* Streamlit 전체 배경 및 텍스트 색상 적용 */
     .stApp {{
         background-color: {bg_color} !important;
         color: {text_color} !important;
     }}
-
-    /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
     #MainMenu {{visibility: hidden !important;}}
     header {{visibility: hidden !important;}}
     footer {{visibility: hidden !important;}}
     
-    /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {{
         display: none !important;
     }}
 
-    /* 우측 상단 토글 버튼 영역 정렬 */
     [data-testid="stHorizontalBlock"] {{
         align-items: center !important;
         justify-content: flex-end !important;
@@ -70,7 +65,6 @@ st.markdown(f"""
         width: auto !important;
     }}
     
-    /* [근본적 해결] 네이티브 버튼을 검색창 카메라 버튼과 똑같은 42px 완벽한 원형 곡률로 강제 고정 */
     div.stButton > button {{
         border-radius: 50% !important;
         width: 42px !important;
@@ -96,7 +90,6 @@ st.markdown(f"""
         line-height: 1 !important;
     }}
 
-    /* 로고 중앙 정렬 및 새로고침 인터랙션 */
     .logo-wrapper {{
         display: flex;
         justify-content: center;
@@ -120,7 +113,6 @@ st.markdown(f"""
         display: block;
     }}
 
-    /* 하단 구분선(hr) 두께 1px, #41b2e7 메인 컬러 적용 */
     hr {{
         border: none !important;
         height: 1px !important;
@@ -137,11 +129,11 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. 백엔드 시크릿에서 API 키 자동 로드 (보안 유지)
+# 4. 백엔드 시크릿에서 API 키 자동 로드 (보안 유지)
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 
-# 4. 우측 상단 네이티브 원형 테마 토글 버튼 배치 (즉각 반응형)
+# 5. 우측 상단 네이티브 원형 테마 토글 버튼 배치 (즉각 반응형)
 _, col_toggle = st.columns([12, 1])
 with col_toggle:
     if st.session_state.theme_mode == "light":
@@ -153,7 +145,7 @@ with col_toggle:
             st.session_state.theme_mode = "light"
             st.rerun()
 
-# 5. 새로고침이 되는 커스텀 로고 렌더링
+# 6. 새로고침이 되는 커스텀 로고 렌더링
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
@@ -188,7 +180,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 6. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바 (다크모드 완벽 대응)
+# 7. [디브 브랜드 감성 적용] #41b2e7 메인 컬러 그라데이션 글로우 효과가 적용된 구글 스타일 검색바 (다크모드 대응)
 search_bar_html = f"""
 <!DOCTYPE html>
 <html>
@@ -266,7 +258,7 @@ search_bar_html = f"""
         const query = encodeURIComponent(input.value.trim());
         window.parent.location.search = '?q=' + query;
       }
-    });
+    }});
 
     function handleFile(inputElement) {{
       if (inputElement.files && inputElement.files[0]) {{
@@ -288,7 +280,7 @@ components.html(search_bar_html, height=90)
 
 st.markdown("---")
 
-# 7. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
+# 8. URL 쿼리 파라미터를 통해 입력된 검색어 또는 이미지 데이터 처리
 query_params = st.query_params
 search_query = query_params.get("q", "")
 img_base64_data = query_params.get("img_data", "")
