@@ -21,7 +21,7 @@ if "theme_mode" not in st.session_state:
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 팔레트
+# 테마별 색상 팔레트 (#41b2e7 메인 컬러 및 테마 대응)
 bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
 btn_bg = "#1E293B" if is_dark else "#ffffff"
@@ -44,7 +44,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (우측 상단 fixed 고정 + 완벽 원형 + 중앙 정렬)
+# 3. CSS 주입 (기존 UI 100% 동일 유지)
 app_css = """
 <style>
     .stApp {
@@ -167,11 +167,11 @@ if st.button(toggle_icon, key="diyv_theme_toggle_btn", help=help_text):
     st.session_state.theme_mode = "light" if is_dark else "dark"
     st.rerun()
 
-# 6. 새로고침 로고 렌더링 (클릭 시 홈으로 깨끗하게 이동)
+# 6. 새로고침 로고 렌더링 (홈으로 이동)
 if img_box := img_base64:
     st.markdown(f"""
     <div class="logo-wrapper">
-        <a href="javascript:window.top.location.href=window.top.location.pathname;" style="text-decoration:none;">
+        <a href="/" target="_top" style="text-decoration:none;">
             <div class="logo-link">
                 <img src="data:image/png;base64,{img_box}" alt="diyv Logo">
             </div>
@@ -179,7 +179,7 @@ if img_box := img_base64:
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='javascript:window.top.location.href=window.top.location.pathname;' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; color: {text_color}; margin-top: 50px;'><a href='/' target='_top' style='text-decoration:none; color:inherit;'>diyv</a></h1>", unsafe_allow_html=True)
 
 st.write("")
 
@@ -200,7 +200,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. 검색바 컴포넌트 HTML (디자인 100% 동일 유지 + window.top 네비게이션 보강)
+# 7. 검색바 컴포넌트 HTML (디자인 100% 유지 + 표준 Form target="_top" 전송으로 브라우저 보안 차단 우회)
 query_params = st.query_params
 raw_query = query_params.get("q", "")
 current_display_val = urllib.parse.unquote(raw_query) if raw_query else ""
@@ -216,6 +216,10 @@ search_bar_template = """
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: transparent;
     box-sizing: border-box;
+  }
+  form {
+    margin: 0;
+    width: 100%;
   }
   .search-container {
     display: flex;
@@ -266,43 +270,37 @@ search_bar_template = """
 </style>
 </head>
 <body>
-  <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" value="__CURRENT_VAL__" autocomplete="off" />
-    <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
-    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
-      <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
-        <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
-      </svg>
-    </button>
-  </div>
+  <!-- 표준 HTML form 전송 방식: 브라우저가 스크립트 보안 제한 없이 최상위 창의 URL을 직접 갱신함 -->
+  <form id="searchForm" action="" method="GET" target="_top">
+    <div class="search-container">
+      <input type="text" name="q" id="searchInput" class="search-input" placeholder="화장품 이름, 성분, 가격 물어보기" value="__CURRENT_VAL__" autocomplete="off" />
+      <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="handleFile(this)" />
+      <button type="button" class="icon-btn" onclick="document.getElementById('fileInput').click()" title="제품 사진 검색">
+        <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 0 24 24" width="22" fill="currentColor">
+          <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+        </svg>
+      </button>
+    </div>
+  </form>
 
   <script>
-    const input = document.getElementById('searchInput');
-
-    // Enter 키 입력 시 안정적인 최상위 브라우저 네비게이션 트리거
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && input.value.trim() !== '') {
-        const query = encodeURIComponent(input.value.trim());
-        try {
-          window.top.location.href = window.top.location.pathname + '?q=' + query;
-        } catch(err) {
-          window.parent.location.search = '?q=' + query;
-        }
-      }
-    });
-
-    // 이미지 파일 업로드 시 Base64 변환 후 파라미터 전달
+    // 이미지 파일 선택 시 폼을 생성하여 target="_top"으로 안전하게 제출
     function handleFile(inputElement) {
       if (inputElement.files && inputElement.files[0]) {
         const file = inputElement.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-          const base64Data = encodeURIComponent(e.target.result);
-          try {
-            window.top.location.href = window.top.location.pathname + '?img_data=' + base64Data;
-          } catch(err) {
-            window.parent.location.search = '?img_data=' + base64Data;
-          }
+          const form = document.createElement('form');
+          form.method = 'GET';
+          form.action = '';
+          form.target = '_top';
+          const hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'img_data';
+          hiddenInput.value = e.target.result;
+          form.appendChild(hiddenInput);
+          document.body.appendChild(form);
+          form.submit();
         };
         reader.readAsDataURL(file);
       }
@@ -386,7 +384,7 @@ if img_base64_data:
     except Exception as e:
         st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
 
-# (2) 텍스트 기반 정밀 검색 분석 (실제 Gemini 엔진 연동 완료)
+# (2) 텍스트 기반 정밀 검색 분석
 elif search_query:
     st.markdown("---")
     query = urllib.parse.unquote(search_query).strip()
