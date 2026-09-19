@@ -20,8 +20,8 @@ if "theme_mode" not in st.session_state:
 
 is_dark = (st.session_state.theme_mode == "dark")
 
-# 테마별 색상 설정 (#0F172A 기반 팔레트)
-bg_color = "#0F172A" if is_dark else "#ffffff"
+# 테마별 색상 설정 (라이트모드 배경: #f8fafd / 다크모드 배경: #0F172A)
+bg_color = "#0F172A" if is_dark else "#f8fafd"
 text_color = "#F1F5F9" if is_dark else "#202124"
 btn_bg = "#1E293B" if is_dark else "#ffffff"
 btn_border = "#334155" if is_dark else "#dfe1e5"
@@ -43,7 +43,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (다크모드 #0F172A 적용 및 원형 토글 버튼 스타일링)
+# 3. CSS 주입
 app_css = """
 <style>
     /* 전체 앱 배경 및 기본 텍스트 테마 적용 */
