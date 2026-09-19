@@ -25,13 +25,15 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# Streamlit 기본 상단 헤더 및 메뉴 완전 숨김
+# [근본적인 해결] CSS 닫는 중괄호 오타 수정 및 로고 크기 정상화
 st.markdown("""
 <style>
+    /* Streamlit 기본 상단 헤더 및 메뉴, 풋터 완전 숨김 */
     #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
-    footer {visibility: hidden !important;
+    footer {visibility: hidden !important;}
     
+    /* 기본 이미지 툴바 강제 숨김 */
     [data-testid="stImage"] button, [data-testid="stImage"] [data-testid="baseButton-secondary"] {
         display: none !important;
     }
@@ -54,7 +56,7 @@ st.markdown("""
         transform: scale(1.02);
     }
     .logo-link img {
-        width: 240px;
+        width: 180px;
         max-width: 100%;
         height: auto;
         display: block;
@@ -71,7 +73,7 @@ st.markdown("""
 
     @media (max-width: 640px) {
         .logo-link img {
-            width: 180px;
+            width: 140px;
         }
     }
 </style>
@@ -85,7 +87,7 @@ serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 query_params = st.query_params
 current_theme = query_params.get("theme", "light")
 
-# 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS (그림자 잘림 방지 패딩 및 완벽한 센터 정렬)
+# 우측 상단 원형 테마 토글 버튼 컴포넌트 HTML/JS
 toggle_btn_html = f"""
 <!DOCTYPE html>
 <html>
@@ -93,7 +95,7 @@ toggle_btn_html = f"""
 <style>
   body {{
     margin: 0;
-    padding: 10px 4px; /* 상하좌우 그림자가 잘리지 않도록 넉넉한 여백 확보 */
+    padding: 10px 4px;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -118,7 +120,6 @@ toggle_btn_html = f"""
     font-size: 18px;
     padding: 0;
     margin: 0;
-    /* 이모지 중심점 완벽히 맞추기 위한 라인 하이트 조정 */
     line-height: 1;
   }}
   .theme-btn:hover {{
@@ -144,7 +145,6 @@ toggle_btn_html = f"""
 </html>
 """
 
-# iframe 높이를 65px로 넉넉하게 주어 위아래 그림자가 절대 잘리지 않도록 함
 components.html(toggle_btn_html, height=65)
 
 # 4. 새로고침이 되는 커스텀 로고 렌더링
