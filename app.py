@@ -43,7 +43,7 @@ def get_base64_image(image_path):
 
 img_base64 = get_base64_image("logo.png")
 
-# 3. CSS 주입 (f-string 문법 에러를 원천 차단하기 위해 .replace 사용)
+# 3. CSS 주입 (최신 Streamlit DOM 구조 전체 대응 원형 스타일 강제 적용)
 app_css = """
 <style>
     /* 전체 앱 배경 및 기본 텍스트 테마 적용 */
@@ -68,16 +68,27 @@ app_css = """
         margin-bottom: -15px !important;
     }
     [data-testid="stHorizontalBlock"] > div:last-child {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
         flex: 0 0 auto !important;
         width: auto !important;
     }
     
-    /* 원형 테마 토글 버튼 스타일링 */
-    div.stButton > button {
+    /* [근본적 해결] 최신 Streamlit 모든 버튼 선택자를 포괄하여 42px 완벽한 원형 강제 적용 */
+    div[data-testid="stHorizontalBlock"] button,
+    [data-testid="stButton"] button,
+    [data-testid="stBaseButton-secondary"],
+    [data-testid="baseButton-secondary"],
+    div.stButton button {
         border-radius: 50% !important;
         width: 42px !important;
         height: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
         min-height: 42px !important;
+        max-height: 42px !important;
+        aspect-ratio: 1 / 1 !important;
         padding: 0px !important;
         background-color: __BTN_BG__ !important;
         border: 1px solid __BTN_BORDER__ !important;
@@ -87,15 +98,30 @@ app_css = """
         justify-content: center !important;
         transition: all 0.2s ease !important;
     }
-    div.stButton > button:hover {
+    div[data-testid="stHorizontalBlock"] button:hover,
+    [data-testid="stButton"] button:hover,
+    [data-testid="stBaseButton-secondary"]:hover,
+    [data-testid="baseButton-secondary"]:hover,
+    div.stButton button:hover {
         border-color: #41b2e7 !important;
         box-shadow: 0 0 0 3px rgba(65, 178, 231, 0.18), 0 2px 8px rgba(65, 178, 231, 0.25) !important;
         background-color: __ICON_HOVER_BG__ !important;
     }
-    div.stButton > button p {
-        font-size: 18px !important;
+
+    /* 내부 이모지/텍스트 컨테이너 정중앙 센터 정렬 강제 */
+    div[data-testid="stHorizontalBlock"] button *,
+    [data-testid="stButton"] button *,
+    [data-testid="stBaseButton-secondary"] *,
+    [data-testid="baseButton-secondary"] *,
+    div.stButton button * {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         margin: 0 !important;
+        padding: 0 !important;
         line-height: 1 !important;
+        font-size: 18px !important;
+        text-align: center !important;
     }
 
     /* 로고 중앙 정렬 */
@@ -153,11 +179,11 @@ serper_api_key = st.secrets.get("SERPER_API_KEY", "")
 _, col_toggle = st.columns([12, 1])
 with col_toggle:
     if not is_dark:
-        if st.button("🌙", help="다크 모드로 전환"):
+        if st.button("🌙", key="theme_toggle_btn", help="다크 모드로 전환"):
             st.session_state.theme_mode = "dark"
             st.rerun()
     else:
-        if st.button("☀️", help="라이트 모드로 전환"):
+        if st.button("☀️", key="theme_toggle_btn", help="라이트 모드로 전환"):
             st.session_state.theme_mode = "light"
             st.rerun()
 
@@ -196,7 +222,7 @@ def fetch_exact_price_and_product_info(query):
             pass
     return snippets
 
-# 7. 검색바 컴포넌트 HTML (f-string 대신 안전한 .replace 방식으로 변수 주입)
+# 7. 검색바 컴포넌트 HTML
 search_bar_template = """
 <!DOCTYPE html>
 <html>
